@@ -50,6 +50,8 @@ local Framework = {
     }
 }
 
+local OrbitAngle = 0
+
 local ConfigManager = {}
 ConfigManager.__index = ConfigManager
 
@@ -203,7 +205,12 @@ function ConfigManager.new()
         ["Visuals/World/Fog/Color"] = {alpha=0, rgb={1,0,0.929999828338623}},
         ["Visuals/World/Fog/Density"] = 4,
         ["Visuals/World/Fog/Distance"] = 0,
-        ["settings/menu/font_label"] = false
+        ["settings/menu/font_label"] = false,
+        -- Chaos / Stress Testing features (for your own game testing only)
+        ["Chaos/Orbit/Enabled"] = false,
+        ["Chaos/Orbit/Radius"] = 15,
+        ["Chaos/Orbit/Speed"] = 2,
+        ["Chaos/Void/YLevel"] = -100000
     }
     return self
 end
@@ -576,7 +583,7 @@ function UILibrary:CreateWindow(title)
     content.BackgroundTransparency = 1
     content.Size = UDim2.new(1, -200, 1, -55)
     content.Position = UDim2.new(0, 200, 0, 55)
-    local tabs = {"Home", "Physics", "Visuals", "World", "Config"}
+    local tabs = {"Home", "Physics", "Visuals", "World", "Config", "Chaos"}
     local tabFrames = {}
     local activeTab = nil
     local function switchTab(name)
@@ -824,6 +831,100 @@ function UILibrary:CreateWindow(title)
             jsonBox.MultiLine = true
             jsonBox.TextXAlignment = Enum.TextXAlignment.Left
             jsonBox.TextYAlignment = Enum.TextYAlignment.Top
+        elseif tabName == "Chaos" then
+            -- CHAOS / STRESS TESTING TAB - ONLY FOR YOUR OWN GAME
+            local chaosTitle = Instance.new("TextLabel")
+            chaosTitle.Parent = tabFrame
+            chaosTitle.Text = "CHAOS / STRESS TESTING - ORBIT & VOID"
+            chaosTitle.Size = UDim2.new(1, -20, 0, 35)
+            chaosTitle.Position = UDim2.new(0, 10, 0, 10)
+            chaosTitle.TextColor3 = Framework.UI.Accent
+            chaosTitle.Font = Framework.UI.Font
+            chaosTitle.TextSize = 18
+            chaosTitle.BackgroundTransparency = 1
+
+            local warnLabel = Instance.new("TextLabel")
+            warnLabel.Parent = tabFrame
+            warnLabel.Text = "⚠️ USA SOLO SUL TUO GIOCO PER TESTARE STABILITÀ SERVER E FISICA.\nNON USARE SU SERVER PUBBLICI, GIOCHI ALTRUI O SENZA PERMESSO.\nRispetta il ToS di Roblox. Questo è per testing proprietario."
+            warnLabel.Size = UDim2.new(1, -20, 0, 55)
+            warnLabel.Position = UDim2.new(0, 10, 0, 50)
+            warnLabel.TextColor3 = Color3.fromRGB(255, 180, 80)
+            warnLabel.Font = Framework.UI.Font
+            warnLabel.TextSize = 12
+            warnLabel.BackgroundTransparency = 1
+            warnLabel.TextWrapped = true
+
+            -- ORBIT AURA SECTION
+            local orbitSec = Instance.new("TextLabel")
+            orbitSec.Parent = tabFrame
+            orbitSec.Text = "ORBIT AURA (Orbital Kinematics Test)"
+            orbitSec.Size = UDim2.new(1, -20, 0, 25)
+            orbitSec.Position = UDim2.new(0, 10, 0, 115)
+            orbitSec.TextColor3 = Color3.new(1,1,1)
+            orbitSec.Font = Framework.UI.Font
+            orbitSec.TextSize = 14
+            orbitSec.BackgroundTransparency = 1
+
+            UILibrary:CreateToggle(tabFrame, "Enable Orbit Aura", "Chaos/Orbit/Enabled", 145)
+            UILibrary:CreateSlider(tabFrame, "Orbit Radius (studs)", "Chaos/Orbit/Radius", 5, 50, 185, 1)
+            UILibrary:CreateSlider(tabFrame, "Orbit Speed (rad/s)", "Chaos/Orbit/Speed", 0.5, 10, 235, 0.1)
+
+            -- MASS VOID SECTION
+            local voidSec = Instance.new("TextLabel")
+            voidSec.Parent = tabFrame
+            voidSec.Text = "MASS VOID (Network/Entity Displacement Test)"
+            voidSec.Size = UDim2.new(1, -20, 0, 25)
+            voidSec.Position = UDim2.new(0, 10, 0, 285)
+            voidSec.TextColor3 = Color3.new(1,1,1)
+            voidSec.Font = Framework.UI.Font
+            voidSec.TextSize = 14
+            voidSec.BackgroundTransparency = 1
+
+            UILibrary:CreateSlider(tabFrame, "Void Y Level", "Chaos/Void/YLevel", -500000, -5000, 315, 5000)
+
+            local voidBtn = Instance.new("TextButton")
+            voidBtn.Parent = tabFrame
+            voidBtn.Text = "⚠️ EXECUTE MASS VOID - DISPLACE ALL TO VOID"
+            voidBtn.Size = UDim2.new(1, -40, 0, 48)
+            voidBtn.Position = UDim2.new(0, 20, 0, 365)
+            voidBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+            voidBtn.TextColor3 = Color3.new(1,1,1)
+            voidBtn.Font = Framework.UI.Font
+            voidBtn.TextSize = 14
+            voidBtn.BorderSizePixel = 0
+            Instance.new("UICorner", voidBtn).CornerRadius = UDim.new(0, 8)
+
+            voidBtn.MouseButton1Click:Connect(function()
+                local yLevel = Framework.Config["Chaos/Void/YLevel"] or -100000
+                local count = 0
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            hrp.CFrame = CFrame.new(0, yLevel, 0)
+                            -- Optional: reset velocity for clean displacement test
+                            if hrp:FindFirstChild("AssemblyLinearVelocity") then
+                                hrp.AssemblyLinearVelocity = Vector3.zero
+                            end
+                            count = count + 1
+                        end
+                    end
+                end
+                if Framework.UI.AddLog then
+                    Framework.UI.AddLog("MASS VOID EXECUTED: " .. count .. " entities sent to Y=" .. yLevel .. " | TEST YOUR GAME ONLY")
+                end
+            end)
+
+            local descLabel = Instance.new("TextLabel")
+            descLabel.Parent = tabFrame
+            descLabel.Text = "Orbit: Other players orbit around you (test replication & movement).\nVoid: Teleport entities to extreme Y coord (test server stability, void zones, networking).\nUsa queste feature SOLO sul tuo gioco per stress-test e debugging. Non su server live altrui."
+            descLabel.Size = UDim2.new(1, -20, 0, 70)
+            descLabel.Position = UDim2.new(0, 10, 0, 425)
+            descLabel.TextColor3 = Color3.fromRGB(170,170,170)
+            descLabel.Font = Framework.UI.Font
+            descLabel.TextSize = 11
+            descLabel.BackgroundTransparency = 1
+            descLabel.TextWrapped = true
         end
     end
     switchTab("Home")
@@ -857,7 +958,7 @@ workspace.ChildAdded:Connect(function(child)
     end
 end)
 
-RunService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function(dt)
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if Framework.Config["Misc/Character/WalkSpeed"] then
@@ -880,6 +981,27 @@ RunService.Heartbeat:Connect(function()
         Lighting.FogColor = rgbToColor3(Framework.Config["Visuals/World/Fog/Color"])
     else
         Lighting.FogEnd = 100000
+    end
+
+    -- ORBIT AURA - Orbital Kinematics for stress/physics testing (your game only)
+    if Framework.Config["Chaos/Orbit/Enabled"] then
+        OrbitAngle = OrbitAngle + ((Framework.Config["Chaos/Orbit/Speed"] or 2) * dt)
+        local centerPos = Vector3.zero
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            centerPos = LocalPlayer.Character.HumanoidRootPart.Position
+        end
+        local radius = Framework.Config["Chaos/Orbit/Radius"] or 15
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local x = math.cos(OrbitAngle) * radius
+                    local z = math.sin(OrbitAngle) * radius
+                    local targetPos = centerPos + Vector3.new(x, 3, z)
+                    hrp.CFrame = CFrame.lookAt(targetPos, centerPos)
+                end
+            end
+        end
     end
 end)
 
