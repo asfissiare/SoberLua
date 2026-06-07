@@ -3290,7 +3290,7 @@ end
 -- Setup GUI
 task.spawn(function()
   task.wait(1)
-  SetupGUI()
+  --[COM] SetupGUI()
 end)
 
 -- Status indicator
@@ -3304,3 +3304,225 @@ print("=== SoberHook v4.0 Loaded ===")
 print("[SH] " .. #SoberHook.Modules .. " modules registered")
 print("[SH] " .. tostring(#SoberHook.Running) .. " modules currently active")
 print("[SH] Press RIGHT SHIFT to toggle the GUI menu")
+-- [HOTFIX] WORKING TOGGLE GUI - Press RightShift to toggle
+-- Cleanup old GUI Drawing objects
+if _G.SoberGUI_Elements then for _,o in ipairs(_G.SoberGUI_Elements) do pcall(function() o:Remove() end) end end
+if _G.SoberGUI and _G.SoberGUI.Main then for _,o in pairs(_G.SoberGUI.Main) do
+  if type(o)=='table' then for _,oo in pairs(o) do if type(oo)=='userdata' then pcall(function() oo:Remove() end) end end
+  elseif type(o)=='userdata' then pcall(function() o:Remove() end) end end end
+local WG={}
+WG.Visible=false
+WG.X,WG.Y=50,50
+WG.W,WG.H=520,420
+WG.CurTab='Aimbot'
+WG.Tabs={'Aimbot','Visuals','Movement','Weapons','Auto','Misc','Settings'}
+WG.Dragging=false
+WG.DragOffX,WG.DragOffY=0,0
+WG.Elements={}
+WG.Colors={BG=Color3.fromRGB(20,20,20),Primary=Color3.fromRGB(35,35,35),Accent=Color3.fromRGB(0,120,255),Text=Color3.fromRGB(220,220,220),Dim=Color3.fromRGB(140,140,140),Green=Color3.fromRGB(60,180,60),Red=Color3.fromRGB(220,50,50)}
+_G.SoberGUI_Elements={}
+function WG:New(typ,props)
+  local o=Drawing.new(typ)
+  for k,v in pairs(props or {}) do o[k]=v end
+  table.insert(_G.SoberGUI_Elements,o)
+  return o
+end
+
+function WG:Draw()
+  if not self.Visible then
+    for _,o in ipairs(_G.SoberGUI_Elements) do pcall(function() o.Visible=false end) end
+    return
+  end
+  for _,o in ipairs(_G.SoberGUI_Elements) do pcall(function() o:Remove() end) end
+  _G.SoberGUI_Elements={}
+  local x,y,w,h=self.X,self.Y,self.W,self.H
+  self:New('Square',{Size=Vector2.new(w,h),Position=Vector2.new(x,y),Color=self.Colors.BG,Filled=true,Thickness=0,Visible=true})
+  self:New('Square',{Size=Vector2.new(w+2,h+2),Position=Vector2.new(x-1,y-1),Color=self.Colors.Accent,Filled=false,Thickness=1,Visible=true})
+  self:New('Square',{Size=Vector2.new(w,25),Position=Vector2.new(x,y),Color=self.Colors.Primary,Filled=true,Visible=true})
+  self:New('Text',{Text='SoberHook v4.0  [RightShift Toggle]',Position=Vector2.new(x+6,y+3),Color=self.Colors.Accent,Size=14,Outline=true,Visible=true})
+  self:New('Square',{Size=Vector2.new(18,18),Position=Vector2.new(x+w-22,y+4),Color=self.Colors.Red,Filled=true,Visible=true})
+  self:New('Text',{Text='X',Position=Vector2.new(x+w-17,y+3),Color=Color3.fromRGB(255,255,255),Size=13,Visible=true})
+  local tw=(w-8)/#self.Tabs
+  self:New('Square',{Size=Vector2.new(w-8,24),Position=Vector2.new(x+4,y+27),Color=self.Colors.Primary,Filled=true,Visible=true})
+  for i,tn in ipairs(self.Tabs) do
+    local tx=x+4+(i-1)*tw;local act=tn==self.CurTab
+    self:New('Square',{Size=Vector2.new(tw-2,22),Position=Vector2.new(tx+1,y+28),Color=act and self.Colors.Accent or self.Colors.Primary,Filled=true,Visible=true})
+    self:New('Text',{Text=tn,Position=Vector2.new(tx+6,y+29),Color=act and Color3.fromRGB(255,255,255) or self.Colors.Text,Size=13,Visible=true})
+  end
+  self:New('Square',{Size=Vector2.new(w-8,h-58),Position=Vector2.new(x+4,y+54),Color=self.Colors.BG,Filled=true,Visible=true})
+  local ey=y+58;local ew=w-16;local sec=self.Elements[self.CurTab] or {}
+  for _,e in ipairs(sec) do
+    if ey>y+h-30 then break end
+    if e.T=='L' then
+      self:New('Text',{Text=e.Txt,Position=Vector2.new(x+10,ey),Color=e.Clr or self.Colors.Dim,Size=13,Outline=true,Visible=true})
+      ey=ey+20
+    elseif e.T=='T' then
+      self:New('Square',{Size=Vector2.new(ew,22),Position=Vector2.new(x+8,ey),Color=self.Colors.Primary,Filled=true,Visible=true})
+      self:New('Square',{Size=Vector2.new(14,14),Position=Vector2.new(x+ew-6,ey+4),Color=e.Val and self.Colors.Green or self.Colors.Red,Filled=true,Visible=true})
+      self:New('Text',{Text=e.Lbl,Position=Vector2.new(x+14,ey+2),Color=self.Colors.Text,Size=13,Visible=true})
+      self:New('Text',{Text=e.Val and 'ON' or 'OFF',Position=Vector2.new(x+ew-24,ey+2),Color=e.Val and self.Colors.Green or self.Colors.Red,Size=11,Visible=true})
+      ey=ey+24
+    elseif e.T=='S' then
+      self:New('Square',{Size=Vector2.new(ew,22),Position=Vector2.new(x+8,ey),Color=self.Colors.Primary,Filled=true,Visible=true})
+      local fw=math.max(0,(e.Val-e.Min)/(e.Max-e.Min)*(ew-80))
+      self:New('Square',{Size=Vector2.new(ew-80,6),Position=Vector2.new(x+12,ey+8),Color=self.Colors.BG,Filled=true,Visible=true})
+      self:New('Square',{Size=Vector2.new(fw,6),Position=Vector2.new(x+12,ey+8),Color=self.Colors.Accent,Filled=true,Visible=true})
+      self:New('Text',{Text=e.Lbl..': '..string.format('%.1f',e.Val),Position=Vector2.new(x+14,ey+2),Color=self.Colors.Text,Size=12,Visible=true})
+      ey=ey+24
+    elseif e.T=='B' then
+      self:New('Square',{Size=Vector2.new(ew-40,22),Position=Vector2.new(x+24,ey),Color=self.Colors.Accent,Filled=true,Visible=true})
+      self:New('Text',{Text=e.Lbl,Position=Vector2.new(x+28,ey+2),Color=Color3.fromRGB(255,255,255),Size=13,Visible=true})
+      ey=ey+24
+    end
+  end
+  self:New('Square',{Size=Vector2.new(w,16),Position=Vector2.new(x,y+h-16),Color=self.Colors.Primary,Filled=true,Visible=true})
+  self:New('Text',{Text='Ready | Tab: '..self.CurTab,Position=Vector2.new(x+6,y+h-14),Color=self.Colors.Dim,Size=11,Visible=true})
+end
+
+function WG:Label(tab,txt,clr)
+  if not self.Elements[tab] then self.Elements[tab]={} end
+  table.insert(self.Elements[tab],{T='L',Txt=txt,Clr=clr or self.Colors.Dim})
+end
+function WG:Toggle(tab,lbl,path)
+  if not self.Elements[tab] then self.Elements[tab]={} end
+  local parts={};for s in string.gmatch(path,'[%w_]+') do table.insert(parts,s) end
+  local val=false
+  if #parts>=2 and Cfg[parts[1]] then val=Cfg[parts[1]][parts[2]] or false end
+  table.insert(self.Elements[tab],{T='T',Lbl=lbl,Path=path,Parts=parts,Val=val})
+end
+function WG:Slider(tab,lbl,path,mn,mx,def)
+  if not self.Elements[tab] then self.Elements[tab]={} end
+  local parts={};for s in string.gmatch(path,'[%w_]+') do table.insert(parts,s) end
+  local val=def
+  if #parts>=2 and Cfg[parts[1]] then val=Cfg[parts[1]][parts[2]] or def end
+  table.insert(self.Elements[tab],{T='S',Lbl=lbl,Path=path,Parts=parts,Min=mn or 0,Max=mx or 100,Val=val})
+end
+function WG:Button(tab,lbl,cb)
+  if not self.Elements[tab] then self.Elements[tab]={} end
+  table.insert(self.Elements[tab],{T='B',Lbl=lbl,CB=cb or function() end})
+end
+function WG:SetVar(parts,val)
+  if #parts>=2 and Cfg[parts[1]] then Cfg[parts[1]][parts[2]]=val end
+end
+function WG:GetVar(parts)
+  if #parts>=2 and Cfg[parts[1]] then return Cfg[parts[1]][parts[2]] end
+  return nil
+end
+function WG:Click(mx,my)
+  if not self.Visible then return false end
+  local x,y,w,h=self.X,self.Y,self.W,self.H
+  if mx>=x+w-22 and mx<=x+w-4 and my>=y+4 and my<=y+22 then self.Visible=false;return true end
+  if mx>=x and mx<=x+w and my>=y and my<=y+25 then self.Dragging=true;self.DragOffX=mx-x;self.DragOffY=my-y;return true end
+  local tw=(w-8)/#self.Tabs
+  for i,tn in ipairs(self.Tabs) do
+    local tx=x+4+(i-1)*tw
+    if mx>=tx+1 and mx<=tx+tw-1 and my>=y+28 and my<=y+50 then self.CurTab=tn;return true end
+  end
+  local ey=y+58;local ew=w-16;local sec=self.Elements[self.CurTab] or {}
+  for _,e in ipairs(sec) do
+    if ey>y+h-30 then break end
+    if e.T=='T' then
+      if mx>=x+8 and mx<=x+8+ew and my>=ey and my<=ey+22 then
+        e.Val=not e.Val;self:SetVar(e.Parts,e.Val);local mp={Aimbot="Aimbot",Trigger="Triggerbot",ESP="ESP",Weapon="Weapon",Speed="Movement",Fly="Movement",InfJump="Movement",BHop="Movement",Noclip="Movement",Wallhack="Wallhack",AntiAim="AntiAim",AutoFarm="Automation",AutoHeal="Automation",AutoBlock="Automation",Loadout="Automation",Spammer="Spammer",Crosshair="Crosshair",FOV="FOV",ThirdP="ThirdPerson",Crosshair="Crosshair"};local mn=mp[e.Parts[1]];if mn and SoberHook then if e.Val then pcall(SoberHook.StartModule,SoberHook,mn)else pcall(SoberHook.StopModule,SoberHook,mn)end end
+        return true
+      end
+    elseif e.T=='S' then
+      if mx>=x+8 and mx<=x+8+ew and my>=ey and my<=ey+22 then
+        local rx=mx-(x+12);local tw2=ew-80
+        if tw2>0 then local r=math.min(math.max(rx/tw2,0),1);e.Val=e.Min+(e.Max-e.Min)*r;self:SetVar(e.Parts,e.Val) end
+        return true
+      end
+    elseif e.T=='B' then
+      if mx>=x+24 and mx<=x+24+ew-40 and my>=ey and my<=ey+22 then task.spawn(e.CB);return true end
+    end
+    ey=ey+24
+  end
+  return false
+end
+function WG:ToggleVis()
+  self.Visible=not self.Visible
+  if not self.Visible then for _,o in ipairs(_G.SoberGUI_Elements) do pcall(function() o.Visible=false end) end end
+end
+
+WG:Label('Aimbot','--- Aim Assist ---',WG.Colors.Accent)
+WG:Toggle('Aimbot','Aimbot','Aimbot.E')
+WG:Slider('Aimbot','FOV','Aimbot.FOV',10,360,120)
+WG:Slider('Aimbot','Smooth','Aimbot.Smooth',0,1,0.5)
+WG:Slider('Aimbot','Predict','Aimbot.Pred',0,1,0.35)
+WG:Label('Aimbot','--- Triggerbot ---',WG.Colors.Accent)
+WG:Toggle('Aimbot','Triggerbot','Trigger.E')
+WG:Label('Visuals','--- ESP ---',WG.Colors.Accent)
+WG:Toggle('Visuals','ESP','ESP.E')
+WG:Toggle('Visuals','Names','ESP.Names')
+WG:Toggle('Visuals','Distance','ESP.Dist')
+WG:Toggle('Visuals','Weapon','ESP.Weapon')
+WG:Label('Visuals','--- Crosshair ---',WG.Colors.Accent)
+WG:Toggle('Visuals','Crosshair','Crosshair.E')
+WG:Label('Visuals','--- Wallhack ---',WG.Colors.Accent)
+WG:Toggle('Visuals','Wallhack','Wallhack.E')
+WG:Label('Visuals','--- Camera ---',WG.Colors.Accent)
+WG:Toggle('Visuals','FOV Changer','FOV.E')
+WG:Slider('Visuals','FOV Value','FOV.FOV',20,180,90)
+WG:Toggle('Visuals','Third Person','ThirdP.E')
+WG:Slider('Visuals','3rd Dist','ThirdP.Dist',3,30,10)
+WG:Label('Movement','--- Speed ---',WG.Colors.Accent)
+WG:Toggle('Movement','Speed Hack','Speed.E')
+WG:Slider('Movement','Speed','Speed.Speed',16,250,32)
+WG:Label('Movement','--- Fly ---',WG.Colors.Accent)
+WG:Toggle('Movement','Fly Hack','Fly.E')
+WG:Slider('Movement','Fly Speed','Fly.Speed',10,200,50)
+WG:Toggle('Movement','Infinite Jump','InfJump.E')
+WG:Toggle('Movement','Bunny Hop','BHop.E')
+WG:Toggle('Movement','Noclip','Noclip.E')
+WG:Label('Weapons','--- Weapon Mods ---',WG.Colors.Accent)
+WG:Toggle('Weapons','Weapon Mods','Weapon.E')
+WG:Toggle('Weapons','No Recoil','Weapon.NoRecoil')
+WG:Toggle('Weapons','No Spread','Weapon.NoSpread')
+WG:Toggle('Weapons','Inf Ammo','Weapon.InfAmmo')
+WG:Toggle('Weapons','Inst Reload','Weapon.InstReload')
+WG:Label('Weapons','--- Anti-Aim ---',WG.Colors.Accent)
+WG:Toggle('Weapons','Anti-Aim','AntiAim.E')
+WG:Label('Auto','--- Auto Farm ---',WG.Colors.Accent)
+WG:Toggle('Auto','Auto Farm','AutoFarm.E')
+WG:Label('Auto','--- Auto Heal ---',WG.Colors.Accent)
+WG:Toggle('Auto','Auto Heal','AutoHeal.E')
+WG:Label('Auto','--- Auto Block ---',WG.Colors.Accent)
+WG:Toggle('Auto','Auto Block','AutoBlock.E')
+WG:Label('Auto','--- Auto Loadout ---',WG.Colors.Accent)
+WG:Toggle('Auto','Auto Loadout','Loadout.E')
+WG:Label('Misc','--- Chat Spammer ---',WG.Colors.Accent)
+WG:Toggle('Misc','Chat Spammer','Spammer.E')
+WG:Slider('Misc','Interval','Spammer.Int',1,60,5)
+WG:Label('Settings','--- Controls ---',WG.Colors.Accent)
+WG:Button('Settings','Enable All',function() for k,v in pairs(Cfg) do if type(v)=='table' and v.E~=nil then v.E=true end end print('[SH] All enabled') end)
+WG:Button('Settings','Disable All',function() for k,v in pairs(Cfg) do if type(v)=='table' and v.E~=nil then v.E=false end end print('[SH] All disabled') end)
+WG:Button('Settings','Sync Toggles',function()
+  for tn,sec in pairs(WG.Elements) do
+    for _,e in ipairs(sec) do
+      if e.T=='T' then e.Val=WG:GetVar(e.Parts) or false end
+      if e.T=='S' then local v=WG:GetVar(e.Parts);if v~=nil then e.Val=v end end
+    end
+  end
+  print('[SH] Toggles synced')
+end)
+
+local uis = game:GetService("UserInputService")
+uis.InputBegan:Connect(function(input,gp)
+  if gp then return end
+  if input.KeyCode==Enum.KeyCode.RightShift then WG:ToggleVis();return end
+  if input.UserInputType==Enum.UserInputType.MouseButton1 then WG:Click(mouse.X,mouse.Y) end
+end)
+uis.InputChanged:Connect(function(input)
+  if input.UserInputType==Enum.UserInputType.MouseMovement and WG.Dragging then
+    WG.X=mouse.X-WG.DragOffX;WG.Y=mouse.Y-WG.DragOffY
+  end
+end)
+uis.InputEnded:Connect(function(input)
+  if input.UserInputType==Enum.UserInputType.MouseButton1 then WG.Dragging=false end
+end)
+task.spawn(function()
+  while task.wait() do WG:Draw() end
+end)
+_G.SoberGUI=WG
+print('[HOTFIX] Working GUI installed. Press RightShift to toggle.')
+print('=== SoberHook v4.0 Ready ===')
