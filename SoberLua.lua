@@ -1,10 +1,10 @@
 -- =============================================================================
--- MODULO: UniversalHackSuite
--- DESCRIZIONE: Suite completa di hacks per Roblox con supporto multi-gioco
---              Arsenal, Brookhaven, Phantom Forces, ecc.
+-- MODULO: UniversalHackSuite v4.0
+-- DESCRIZIONE: Suite completa di hacks per Roblox con GUI interattiva
+--              Supporto: Arsenal, Brookhaven, Phantom Forces, ecc.
 -- AUTORE: HackerAI
--- VERSIONE: 3.0
--- COMPATIBILITÀ: Synapse X, Krnl, JJSploit, Fluxus, Script-Ware
+-- VERSIONE: 4.0
+-- TOGGLE KEY: Ctrl+Destro (tasto destro del mouse + Control)
 -- =============================================================================
 
 -- =============================================================================
@@ -16,10 +16,10 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
 local VirtualInputManager = game:GetService("VirtualInputManager")
-local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ContextActionService = game:GetService("ContextActionService")
+local TweenService = game:GetService("TweenService")
 
 -- =============================================================================
 -- SEZIONE 2: VARIABILI GLOBALI
@@ -31,144 +31,283 @@ local Mouse = LocalPlayer:GetMouse()
 local Character = LocalPlayer.Character
 local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
 local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+local RandomGen = Random.new()
+local MenuOpen = false
 
 -- =============================================================================
--- SEZIONE 3: CONFIGURAZIONE GENERALE
+-- SEZIONE 3: CONFIGURAZIONE COMPLETA (TUTTO PERSONALIZZABILE)
 -- =============================================================================
 
 local Config = {
-    -- Aimbot
-    AimbotEnabled = false,
-    SilentAimEnabled = false,
-    RagebotEnabled = false,
-    TriggerbotEnabled = false,
-    AimLockSmoothness = 0.5,
-    AimPart = "Head",
-    FOVRadius = 200,
-    FOVColor = Color3.fromRGB(255, 50, 50),
-    RagebotDelay = 0.05,
-    PredictionMultiplier = 0.4,
+    -- === STILE DEL MENU ===
+    MenuStyle = {
+        Theme = "Dark",              -- "Dark", "Light", "Blue", "Red", "Green", "Purple", "Orange", "Custom"
+        AccentColor = Color3.fromRGB(50, 150, 255),
+        BackgroundColor = Color3.fromRGB(25, 25, 35),
+        TextColor = Color3.fromRGB(220, 220, 220),
+        TitleColor = Color3.fromRGB(255, 255, 255),
+        ToggleOnColor = Color3.fromRGB(50, 200, 80),
+        ToggleOffColor = Color3.fromRGB(200, 50, 50),
+        SliderColor = Color3.fromRGB(50, 150, 255),
+        BorderColor = Color3.fromRGB(60, 60, 80),
+        Transparency = 0.9,
+        FontSize = 14,
+        TitleSize = 22,
+        SectionSize = 16,
+        Width = 350,
+        Height = 500,
+        X = 50,
+        Y = 50,
+        AnimationSpeed = 0.2,       -- Velocità animazione apertura/chiusura
+    },
 
-    -- ESP
-    ESPEnabled = false,
-    ESPBoxes = true,
-    ESPHealth = true,
-    ESPNames = true,
-    ESPDistance = true,
-    ESPWeapon = true,
-    ESPLines = true,
-    ESPColor = Color3.fromRGB(0, 255, 0),
+    -- === HOTKEY ===
+    Hotkeys = {
+        MenuToggle = {Key = Enum.UserInputType.MouseButton2, Modifier = Enum.KeyCode.LeftControl},
+        -- Alternativa: MenuToggle = {Key = Enum.KeyCode.F5, Modifier = nil},
+    },
 
-    -- Movement
-    SpeedHackEnabled = false,
-    SpeedMultiplier = 2.0,
-    FlyEnabled = false,
-    FlySpeed = 50,
-    InfiniteJumpEnabled = false,
-    BunnyHopEnabled = false,
-    NoclipEnabled = false,
+    -- === AIMBOT ===
+    Aimbot = {
+        Enabled = false,
+        SilentAim = false,
+        Ragebot = false,
+        Triggerbot = false,
+        AimPart = "Head",           -- "Head", "Random", "Nearest"
+        Smoothness = 0.5,           -- 0 = istantaneo, 1 = molto smooth
+        FOVRadius = 200,
+        FOVVisible = true,
+        FOVColor = Color3.fromRGB(255, 50, 50),
+        FOVTransparency = 0.7,
+        FOVThickness = 2,
+        RagebotDelay = 0.05,
+        PredictionMultiplier = 0.4,
+        RandomDelayMin = 30,
+        RandomDelayMax = 120,
+    },
 
-    -- Weapon Mods
-    NoRecoilEnabled = false,
-    NoSpreadEnabled = false,
-    InfiniteAmmoEnabled = false,
-    InstantReloadEnabled = false,
-    OneHitKillEnabled = false,
+    -- === ESP ===
+    ESP = {
+        Enabled = false,
+        Boxes = true,
+        Health = true,
+        Names = true,
+        Distance = true,
+        Weapon = true,
+        Lines = true,
+        Color = Color3.fromRGB(0, 255, 0),
+        HealthColorHigh = Color3.fromRGB(0, 255, 0),
+        HealthColorMid = Color3.fromRGB(255, 255, 0),
+        HealthColorLow = Color3.fromRGB(255, 0, 0),
+        Thickness = 2,
+        Transparency = 0.7,
+        FontSize = 14,
+    },
 
-    -- Other
-    WallhackEnabled = false,
-    AutoFarmEnabled = false,
-    AntiAimEnabled = false,
-    AutoBlockEnabled = false,
-    AutoHealEnabled = false,
-    ChatSpammerEnabled = false,
-    CustomCrosshairEnabled = false,
-    FOVChangerEnabled = false,
-    ThirdPersonEnabled = false,
-    AutoLoadoutEnabled = false,
-    OrbitEnabled = false,
-    VoidSpamEnabled = false,
+    -- === MOVEMENT ===
+    Movement = {
+        SpeedHack = false,
+        SpeedMultiplier = 2.0,
+        Fly = false,
+        FlySpeed = 50,
+        InfiniteJump = false,
+        JumpPower = 100,
+        BunnyHop = false,
+        Noclip = false,
+    },
 
-    -- Hotkeys
-    ToggleKey = Enum.KeyCode.F5,
-    MenuKey = Enum.KeyCode.Insert,
+    -- === WEAPON MODS ===
+    Weapon = {
+        NoRecoil = false,
+        NoSpread = false,
+        InfiniteAmmo = false,
+        InstantReload = false,
+        OneHitKill = false,
+        AutoLoadout = false,
+        LoadoutWeapon = "Sniper",
+    },
 
-    -- Anti-cheat evasion
-    RandomDelays = true,
-    MinRandomDelay = 30,
-    MaxRandomDelay = 120,
-    UseFakeVariables = true,
+    -- === ESPLORAZIONE ===
+    Exploration = {
+        Wallhack = false,
+        WallhackTransparency = 0.7,
+        AntiAim = false,
+        AutoBlock = false,
+        AutoHeal = false,
+        AutoHealThreshold = 0.5,
+        AutoFarm = false,
+        FarmRange = 50,
+        ChatSpammer = false,
+        ChatMessage = "EZ",
+        ChatInterval = 5,
+    },
+
+    -- === MISC ===
+    Misc = {
+        CustomCrosshair = false,
+        CrosshairColor = Color3.fromRGB(255, 255, 255),
+        CrosshairSize = 10,
+        CrosshairThickness = 2,
+        FOVChanger = false,
+        FOVValue = 120,
+        ThirdPerson = false,
+        ThirdPersonDistance = 10,
+        Orbit = false,
+        OrbitRadius = 15,
+        OrbitSpeed = 2,
+        VoidSpam = false,
+    },
 }
 
 -- =============================================================================
--- SEZIONE 4: OGGETTI DRAWING
+-- SEZIONE 4: TEMA DEL MENU (PERSONALIZZABILE)
 -- =============================================================================
 
-local DrawingObjects = {
-    FOVCircle = Drawing.new("Circle"),
-    Crosshair = Drawing.new("Circle"),
-    ESPCache = {},
+local Themes = {
+    Dark = {
+        AccentColor = Color3.fromRGB(50, 150, 255),
+        BackgroundColor = Color3.fromRGB(20, 20, 30),
+        TextColor = Color3.fromRGB(200, 200, 200),
+        TitleColor = Color3.fromRGB(255, 255, 255),
+        ToggleOnColor = Color3.fromRGB(50, 200, 80),
+        ToggleOffColor = Color3.fromRGB(200, 50, 50),
+        SliderColor = Color3.fromRGB(50, 150, 255),
+        BorderColor = Color3.fromRGB(50, 50, 70),
+    },
+    Light = {
+        AccentColor = Color3.fromRGB(0, 120, 255),
+        BackgroundColor = Color3.fromRGB(240, 240, 250),
+        TextColor = Color3.fromRGB(30, 30, 40),
+        TitleColor = Color3.fromRGB(0, 0, 0),
+        ToggleOnColor = Color3.fromRGB(0, 180, 50),
+        ToggleOffColor = Color3.fromRGB(220, 50, 50),
+        SliderColor = Color3.fromRGB(0, 120, 255),
+        BorderColor = Color3.fromRGB(180, 180, 200),
+    },
+    Blue = {
+        AccentColor = Color3.fromRGB(30, 100, 255),
+        BackgroundColor = Color3.fromRGB(15, 25, 50),
+        TextColor = Color3.fromRGB(180, 200, 255),
+        TitleColor = Color3.fromRGB(255, 255, 255),
+        ToggleOnColor = Color3.fromRGB(50, 200, 255),
+        ToggleOffColor = Color3.fromRGB(200, 50, 50),
+        SliderColor = Color3.fromRGB(30, 100, 255),
+        BorderColor = Color3.fromRGB(40, 60, 120),
+    },
+    Red = {
+        AccentColor = Color3.fromRGB(255, 50, 50),
+        BackgroundColor = Color3.fromRGB(40, 15, 15),
+        TextColor = Color3.fromRGB(255, 180, 180),
+        TitleColor = Color3.fromRGB(255, 255, 255),
+        ToggleOnColor = Color3.fromRGB(255, 80, 80),
+        ToggleOffColor = Color3.fromRGB(150, 50, 50),
+        SliderColor = Color3.fromRGB(255, 50, 50),
+        BorderColor = Color3.fromRGB(100, 40, 40),
+    },
+    Green = {
+        AccentColor = Color3.fromRGB(50, 255, 80),
+        BackgroundColor = Color3.fromRGB(15, 40, 20),
+        TextColor = Color3.fromRGB(180, 255, 190),
+        TitleColor = Color3.fromRGB(255, 255, 255),
+        ToggleOnColor = Color3.fromRGB(50, 255, 80),
+        ToggleOffColor = Color3.fromRGB(200, 50, 50),
+        SliderColor = Color3.fromRGB(50, 255, 80),
+        BorderColor = Color3.fromRGB(40, 100, 50),
+    },
+    Purple = {
+        AccentColor = Color3.fromRGB(180, 50, 255),
+        BackgroundColor = Color3.fromRGB(30, 15, 45),
+        TextColor = Color3.fromRGB(210, 180, 255),
+        TitleColor = Color3.fromRGB(255, 255, 255),
+        ToggleOnColor = Color3.fromRGB(180, 80, 255),
+        ToggleOffColor = Color3.fromRGB(200, 50, 50),
+        SliderColor = Color3.fromRGB(180, 50, 255),
+        BorderColor = Color3.fromRGB(80, 40, 120),
+    },
+    Orange = {
+        AccentColor = Color3.fromRGB(255, 150, 30),
+        BackgroundColor = Color3.fromRGB(45, 30, 15),
+        TextColor = Color3.fromRGB(255, 210, 160),
+        TitleColor = Color3.fromRGB(255, 255, 255),
+        ToggleOnColor = Color3.fromRGB(255, 180, 50),
+        ToggleOffColor = Color3.fromRGB(200, 50, 50),
+        SliderColor = Color3.fromRGB(255, 150, 30),
+        BorderColor = Color3.fromRGB(120, 80, 30),
+    },
 }
 
--- Inizializza FOV Circle
-DrawingObjects.FOVCircle.Visible = false
-DrawingObjects.FOVCircle.Color = Config.FOVColor
-DrawingObjects.FOVCircle.Thickness = 2
-DrawingObjects.FOVCircle.Transparency = 0.7
-DrawingObjects.FOVCircle.NumSides = 64
-DrawingObjects.FOVCircle.Radius = Config.FOVRadius
-
--- Inizializza Crosshair personalizzato
-DrawingObjects.Crosshair.Visible = false
-DrawingObjects.Crosshair.Color = Color3.fromRGB(255, 255, 255)
-DrawingObjects.Crosshair.Thickness = 2
-DrawingObjects.Crosshair.Transparency = 0.5
-DrawingObjects.Crosshair.NumSides = 32
-DrawingObjects.Crosshair.Radius = 10
-
 -- =============================================================================
--- SEZIONE 5: FUNZIONI DI BASE E UTILITY
+-- SEZIONE 5: FUNZIONI DI TEMA
 -- =============================================================================
 
---- Calcola la distanza tra due punti 3D in modo efficiente
-local function GetDistance(pos1, pos2)
-    return (pos1 - pos2).Magnitude
-end
-
---- Ottiene il centro dello schermo
-local function GetScreenCenter()
-    return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-end
-
---- Ottiene una parte valida del personaggio per mirare
-local function GetAimPart(character)
-    local head = character:FindFirstChild("Head")
-    if head then return head end
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if root then return root end
-    return character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
-end
-
---- Ottiene la velocità attuale del nemico per predizione
-local function GetVelocity(character)
-    local root = character:FindFirstChild("HumanoidRootPart")
-    return root and root.Velocity or Vector3.new()
-end
-
---- Verifica se un Humanoid è vivo
-local function IsAlive(character)
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-    return humanoid and humanoid.Health > 0 and humanoid.Parent ~= nil
-end
-
---- Genera delay random per anti-ban
-local function RandomDelay()
-    if Config.RandomDelays then
-        task.wait(math.random(Config.MinRandomDelay, Config.MaxRandomDelay) / 1000)
+--- Applica un tema al menu
+function SetTheme(themeName)
+    if Themes[themeName] then
+        Config.MenuStyle.Theme = themeName
+        for k, v in pairs(Themes[themeName]) do
+            Config.MenuStyle[k] = v
+        end
+        if MenuOpen then
+            RebuildMenu()
+        end
+        ShowNotification("[Tema] " .. themeName, Color3.fromRGB(0, 255, 100))
     end
 end
 
---- Crea notifica testuale temporanea
+--- Imposta colore personalizzato
+function SetCustomAccentColor(color)
+    Config.MenuStyle.Theme = "Custom"
+    Config.MenuStyle.AccentColor = color
+    if MenuOpen then RebuildMenu() end
+end
+
+--- Imposta trasparenza del menu
+function SetMenuTransparency(transparency)
+    Config.MenuStyle.Transparency = math.clamp(transparency, 0, 1)
+    if MenuOpen then RebuildMenu() end
+end
+
+--- Imposta la posizione del menu
+function SetMenuPosition(x, y)
+    Config.MenuStyle.X = x
+    Config.MenuStyle.Y = y
+    if MenuOpen then RebuildMenu() end
+end
+
+-- =============================================================================
+-- SEZIONE 6: OGGETTI DRAWING + GUI
+-- =============================================================================
+
+-- Oggetti del menu
+local MenuObjects = {}
+local TabButtons = {}
+local CurrentTab = "Aimbot"
+local IsDragging = false
+local DragOffset = Vector2.new(0, 0)
+
+-- Oggetti disegno permanenti
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Visible = false
+FOVCircle.Color = Config.Aimbot.FOVColor
+FOVCircle.Thickness = Config.Aimbot.FOVThickness
+FOVCircle.Transparency = Config.Aimbot.FOVTransparency
+FOVCircle.NumSides = 64
+FOVCircle.Radius = Config.Aimbot.FOVRadius
+
+local CrosshairCircle = Drawing.new("Circle")
+CrosshairCircle.Visible = false
+CrosshairCircle.Color = Config.Misc.CrosshairColor
+CrosshairCircle.Thickness = Config.Misc.CrosshairThickness
+CrosshairCircle.Transparency = 0.5
+CrosshairCircle.NumSides = 32
+CrosshairCircle.Radius = Config.Misc.CrosshairSize
+
+-- =============================================================================
+-- SEZIONE 7: NOTIFICHE
+-- =============================================================================
+
+local Notifications = {}
+
 local function ShowNotification(text, color, duration)
     color = color or Color3.fromRGB(0, 255, 100)
     duration = duration or 2
@@ -176,27 +315,80 @@ local function ShowNotification(text, color, duration)
     local notif = Drawing.new("Text")
     notif.Text = text
     notif.Color = color
-    notif.Size = 18
+    notif.Size = Config.MenuStyle.FontSize + 4
     notif.Center = true
     notif.Outline = true
     notif.OutlineColor = Color3.fromRGB(0, 0, 0)
-    notif.Position = GetScreenCenter() + Vector2.new(-150, 80)
+    notif.Position = Vector2.new(
+        Camera.ViewportSize.X / 2,
+        Camera.ViewportSize.Y / 2 + 100 + (#Notifications * 30)
+    )
+
+    table.insert(Notifications, notif)
 
     task.spawn(function()
         task.wait(duration)
         for i = 1, 0, -0.05 do
             notif.Transparency = i
+            notif.Position = notif.Position + Vector2.new(0, -1)
             task.wait(0.03)
         end
         notif:Remove()
+        for idx, n in ipairs(Notifications) do
+            if n == notif then
+                table.remove(Notifications, idx)
+                break
+            end
+        end
     end)
 end
 
 -- =============================================================================
--- SEZIONE 6: WALL CHECK CON RAYCASTING
+-- SEZIONE 8: FUNZIONI DI UTILITÀ
 -- =============================================================================
 
---- Verifica se il target è visibile usando raycast
+local function GetDistance(pos1, pos2)
+    return (pos1 - pos2).Magnitude
+end
+
+local function GetScreenCenter()
+    return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end
+
+local function GetAimPart(character)
+    if not character then return nil end
+
+    local partName = Config.Aimbot.AimPart
+    if partName == "Random" then
+        local parts = {"Head", "HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso"}
+        return character:FindFirstChild(parts[math.random(1, #parts)])
+    end
+
+    local head = character:FindFirstChild("Head")
+    if head then return head end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if root then return root end
+    return character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+end
+
+local function GetVelocity(character)
+    local root = character and character:FindFirstChild("HumanoidRootPart")
+    return root and root.Velocity or Vector3.new()
+end
+
+local function IsAlive(character)
+    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+    return humanoid and humanoid.Health > 0 and humanoid.Parent ~= nil
+end
+
+local function RandomDelay()
+    task.wait(math.random(Config.Aimbot.RandomDelayMin, Config.Aimbot.RandomDelayMax) / 1000)
+end
+
+-- =============================================================================
+-- SEZIONE 9: WALL CHECK (RAYCAST)
+-- =============================================================================
+
 local function IsTargetVisible(targetPosition)
     if not targetPosition then return false end
 
@@ -215,40 +407,33 @@ local function IsTargetVisible(targetPosition)
     local maxDist = GetDistance(targetPosition, origin)
 
     local result = Workspace:Raycast(origin, direction * maxDist, params)
-
     if not result then return true end
 
-    -- Se colpisce un oggetto, controlla se è il target
     local hitPart = result.Instance
     local hitCharacter = hitPart and hitPart.Parent
     if hitCharacter and hitCharacter:FindFirstChildOfClass("Humanoid") then
         return true
     end
-
     return false
 end
 
 -- =============================================================================
--- SEZIONE 7: PREDIZIONE MOVIMENTO
+-- SEZIONE 10: PREDIZIONE MOVIMENTO
 -- =============================================================================
 
---- Calcola posizione futura tenendo conto di velocità e distanza
 local function PredictPosition(targetPos, targetVelocity)
-    if not Config.AimbotEnabled or Config.PredictionMultiplier <= 0 then
-        return targetPos
-    end
+    if Config.Aimbot.PredictionMultiplier <= 0 then return targetPos end
 
     local distance = GetDistance(targetPos, Camera.CFrame.Position)
-    local distanceFactor = math.clamp(distance / 500, 0.3, 2.0)
+    local factor = math.clamp(distance / 500, 0.3, 2.0)
 
-    return targetPos + (targetVelocity * Config.PredictionMultiplier * distanceFactor)
+    return targetPos + (targetVelocity * Config.Aimbot.PredictionMultiplier * factor)
 end
 
 -- =============================================================================
--- SEZIONE 8: FIND CLOSEST TARGET
+-- SEZIONE 11: GET CLOSEST TARGET
 -- =============================================================================
 
---- Trova il nemico più vicino nel FOV
 local function GetClosestTarget(useFOV)
     local closest = nil
     local closestDist = math.huge
@@ -264,144 +449,107 @@ local function GetClosestTarget(useFOV)
         local part = GetAimPart(char)
         if not part then continue end
 
-        -- Predizione
         local targetPos = PredictPosition(part.Position, GetVelocity(char))
 
-        -- Wall Check
         if not IsTargetVisible(targetPos) then continue end
 
-        -- 3D -> 2D
         local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos)
         if not onScreen then continue end
 
-        local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
-        local dist2D = (screenPoint - screenCenter).Magnitude
+        local sp = Vector2.new(screenPos.X, screenPos.Y)
+        local d2 = (sp - screenCenter).Magnitude
 
-        if useFOV and dist2D > Config.FOVRadius then continue end
+        if useFOV and d2 > Config.Aimbot.FOVRadius then continue end
 
-        if dist2D < closestDist then
-            closestDist = dist2D
+        if d2 < closestDist then
+            closestDist = d2
             closest = {
                 Player = player,
                 Character = char,
                 Part = part,
                 Position = targetPos,
-                ScreenPosition = screenPoint,
+                ScreenPosition = sp,
                 Distance = GetDistance(targetPos, Camera.CFrame.Position),
             }
         end
     end
-
     return closest
 end
 
 -- =============================================================================
--- SEZIONE 9: AIMBOT - AIM LOCK
+-- SEZIONE 12: AIMBOT FUNCTIONS
 -- =============================================================================
 
-function EnableAimbot()
-    Config.AimbotEnabled = true
-    DrawingObjects.FOVCircle.Visible = true
-    ShowNotification("[+] Aimbot ON", Color3.fromRGB(0, 255, 100))
+function ToggleAimbot()
+    Config.Aimbot.Enabled = not Config.Aimbot.Enabled
+    FOVCircle.Visible = Config.Aimbot.Enabled and Config.Aimbot.FOVVisible
+    ShowNotification(Config.Aimbot.Enabled and "[+] Aimbot ON" or "[-] Aimbot OFF",
+                     Config.Aimbot.Enabled and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
 end
 
-function DisableAimbot()
-    Config.AimbotEnabled = false
-    DrawingObjects.FOVCircle.Visible = false
-    ShowNotification("[-] Aimbot OFF", Color3.fromRGB(255, 50, 50))
+function ToggleSilentAim()
+    Config.Aimbot.SilentAim = not Config.Aimbot.SilentAim
+    ShowNotification(Config.Aimbot.SilentAim and "[+] Silent Aim ON" or "[-] Silent Aim OFF",
+                     Config.Aimbot.SilentAim and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
 end
 
-local function ExecuteAimbot()
-    if not Config.AimbotEnabled then return end
-
-    local target = GetClosestTarget(true)
-    if not target then return end
-
-    local smoothFactor = 1 - Config.AimLockSmoothness
-
-    if smoothFactor < 0.01 then
-        mousemovepls(target.ScreenPosition.X, target.ScreenPosition.Y)
-    else
-        local newX = Mouse.X + (target.ScreenPosition.X - Mouse.X) * smoothFactor
-        local newY = Mouse.Y + (target.ScreenPosition.Y - Mouse.Y) * smoothFactor
-        mousemovepls(newX, newY)
-    end
+function ToggleRagebot()
+    Config.Aimbot.Ragebot = not Config.Aimbot.Ragebot
+    ShowNotification(Config.Aimbot.Ragebot and "[+] Ragebot ON" or "[-] Ragebot OFF",
+                     Config.Aimbot.Ragebot and Color3.fromRGB(255, 100, 0) or Color3.fromRGB(255, 50, 50))
 end
 
--- =============================================================================
--- SEZIONE 10: SILENT AIM
--- =============================================================================
-
-function EnableSilentAim()
-    Config.SilentAimEnabled = true
-    ShowNotification("[+] Silent Aim ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableSilentAim()
-    Config.SilentAimEnabled = false
-    ShowNotification("[-] Silent Aim OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local function ExecuteSilentAim()
-    if not Config.SilentAimEnabled then return end
-
-    local target = GetClosestTarget(true)
-    if not target then return end
-
-    mousemovepls(target.ScreenPosition.X, target.ScreenPosition.Y)
-    mouse1click()
-    RandomDelay()
-end
-
--- =============================================================================
--- SEZIONE 11: RAGEBOT
--- =============================================================================
-
-function EnableRagebot()
-    Config.RagebotEnabled = true
-    ShowNotification("[+] Ragebot ON", Color3.fromRGB(255, 100, 0))
-end
-
-function DisableRagebot()
-    Config.RagebotEnabled = false
-    ShowNotification("[-] Ragebot OFF", Color3.fromRGB(255, 50, 50))
+function ToggleTriggerbot()
+    Config.Aimbot.Triggerbot = not Config.Aimbot.Triggerbot
+    ShowNotification(Config.Aimbot.Triggerbot and "[+] Triggerbot ON" or "[-] Triggerbot OFF",
+                     Config.Aimbot.Triggerbot and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(255, 50, 50))
 end
 
 local lastRagebotFire = 0
 
-local function ExecuteRagebot()
-    if not Config.RagebotEnabled then return end
-
-    local now = tick()
-    if now - lastRagebotFire < Config.RagebotDelay then return end
+local function ExecuteAimbot()
+    if not Config.Aimbot.Enabled then return end
 
     local target = GetClosestTarget(true)
     if not target then return end
 
-    mousemovepls(target.ScreenPosition.X, target.ScreenPosition.Y)
-    mouse1click()
-    lastRagebotFire = now
-    RandomDelay()
+    if Config.Aimbot.Ragebot then
+        local now = tick()
+        if now - lastRagebotFire >= Config.Aimbot.RagebotDelay then
+            mousemovepls(target.ScreenPosition.X, target.ScreenPosition.Y)
+            mouse1click()
+            lastRagebotFire = now
+            RandomDelay()
+        end
+        return
+    end
+
+    if Config.Aimbot.SilentAim then
+        mousemovepls(target.ScreenPosition.X, target.ScreenPosition.Y)
+        mouse1click()
+        RandomDelay()
+        return
+    end
+
+    -- Aim Lock normale
+    local smooth = Config.Aimbot.Smoothness
+    if smooth <= 0.01 then
+        mousemovepls(target.ScreenPosition.X, target.ScreenPosition.Y)
+    else
+        local sf = 1 - smooth
+        local nx = Mouse.X + (target.ScreenPosition.X - Mouse.X) * sf
+        local ny = Mouse.Y + (target.ScreenPosition.Y - Mouse.Y) * sf
+        mousemovepls(nx, ny)
+    end
 end
 
 -- =============================================================================
--- SEZIONE 12: TRIGGERBOT
+-- SEZIONE 13: TRIGGERBOT
 -- =============================================================================
-
-function EnableTriggerbot()
-    Config.TriggerbotEnabled = true
-    ShowNotification("[+] Triggerbot ON", Color3.fromRGB(0, 200, 255))
-end
-
-function DisableTriggerbot()
-    Config.TriggerbotEnabled = false
-    ShowNotification("[-] Triggerbot OFF", Color3.fromRGB(255, 50, 50))
-end
 
 local function ExecuteTriggerbot()
-    if not Config.TriggerbotEnabled then return end
+    if not Config.Aimbot.Triggerbot then return end
 
-    -- Ottiene il bersaglio sotto il mirino usando raycast
     local mouseRay = Mouse.UnitRay
     local origin = mouseRay.Origin
     local direction = mouseRay.Direction * 1000
@@ -411,7 +559,6 @@ local function ExecuteTriggerbot()
     params.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
 
     local result = Workspace:Raycast(origin, direction, params)
-
     if result then
         local hitChar = result.Instance and result.Instance.Parent
         if hitChar and hitChar:FindFirstChildOfClass("Humanoid") and hitChar ~= LocalPlayer.Character then
@@ -422,159 +569,27 @@ local function ExecuteTriggerbot()
 end
 
 -- =============================================================================
--- SEZIONE 13: ESP (Enhanced)
+-- SEZIONE 14: ESP
 -- =============================================================================
 
 local ESPObjects = {}
 
-function EnableESP()
-    Config.ESPEnabled = true
-    ShowNotification("[+] ESP ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableESP()
-    Config.ESPEnabled = false
-
-    -- Rimuovi tutti gli oggetti ESP
-    for player, objects in pairs(ESPObjects) do
-        for _, obj in pairs(objects) do
-            obj:Remove()
-        end
-    end
-    table.clear(ESPObjects)
-
-    ShowNotification("[-] ESP OFF", Color3.fromRGB(255, 50, 50))
-end
-
---- Crea un box 2D attorno al nemico
-local function CreateBoxESP(char, screenPos, distance)
-    if not Config.ESPBoxes then return end
-
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    local healthPercent = humanoid.Health / humanoid.MaxHealth
-    local boxSize = 60 / (distance / 100)
-    boxSize = math.clamp(boxSize, 20, 150)
-
-    local box = Drawing.new("Square")
-    box.Visible = true
-    box.Size = Vector2.new(boxSize, boxSize * 1.8)
-    box.Position = screenPos - box.Size / 2
-    box.Color = Config.ESPColor
-    box.Thickness = 2
-    box.Transparency = 0.7
-
-    return box
-end
-
---- Crea barra della salute
-local function CreateHealthBarESP(char, screenPos, boxSize)
-    if not Config.ESPHealth then return end
-
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
-    local barWidth = 6
-    local barHeight = boxSize * 1.8
-
-    -- Sfondo barra
-    local bg = Drawing.new("Square")
-    bg.Visible = true
-    bg.Size = Vector2.new(barWidth, barHeight)
-    bg.Position = screenPos - Vector2.new(boxSize / 2 + barWidth + 4, barHeight / 2)
-    bg.Color = Color3.fromRGB(50, 50, 50)
-    bg.Filled = true
-    bg.Transparency = 0.8
-
-    -- Barra salute
-    local bar = Drawing.new("Square")
-    bar.Visible = true
-    bar.Size = Vector2.new(barWidth - 2, (barHeight - 2) * healthPercent)
-    bar.Position = bg.Position + Vector2.new(1, barHeight - 2 - bar.Size.Y)
-    bar.Color = Color3.fromRGB(
-        math.floor(255 * (1 - healthPercent)),
-        math.floor(255 * healthPercent),
-        0
-    )
-    bar.Filled = true
-    bar.Transparency = 0.6
-
-    return {bg, bar}
-end
-
---- Crea testo con nome, distanza e arma
-local function CreateTextESP(char, screenPos, distance, boxSize)
-    local texts = {}
-
-    -- Nome
-    if Config.ESPNames then
-        local name = Drawing.new("Text")
-        name.Visible = true
-        name.Text = char.Name
-        name.Color = Config.ESPColor
-        name.Size = 14
-        name.Center = true
-        name.Outline = true
-        name.Position = screenPos - Vector2.new(0, boxSize * 1.8 / 2 + 16)
-        table.insert(texts, name)
-    end
-
-    -- Distanza
-    if Config.ESPDistance then
-        local dist = Drawing.new("Text")
-        dist.Visible = true
-        dist.Text = string.format("[%.0fm]", distance)
-        dist.Color = Color3.fromRGB(200, 200, 200)
-        dist.Size = 12
-        dist.Center = true
-        dist.Outline = true
-        dist.Position = screenPos + Vector2.new(0, boxSize * 1.8 / 2 + 4)
-        table.insert(texts, dist)
-    end
-
-    -- Arma (cerca nel personaggio o nel backpack)
-    if Config.ESPWeapon then
-        local weapon = char:FindFirstChildOfClass("Tool") or
-                       LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
-        if weapon then
-            local wpn = Drawing.new("Text")
-            wpn.Visible = true
-            wpn.Text = weapon.Name
-            wpn.Color = Color3.fromRGB(255, 200, 50)
-            wpn.Size = 12
-            wpn.Center = true
-            wpn.Outline = true
-            wpn.Position = dist and dist.Position + Vector2.new(0, 16) or
-                           screenPos + Vector2.new(0, boxSize * 1.8 / 2 + 4)
-            table.insert(texts, wpn)
-        end
-    end
-
-    -- Linea verso il nemico
-    if Config.ESPLines then
-        local line = Drawing.new("Line")
-        line.Visible = true
-        line.From = GetScreenCenter()
-        line.To = screenPos
-        line.Color = Config.ESPColor
-        line.Thickness = 1
-        line.Transparency = 0.5
-        table.insert(texts, line)
-    end
-
-    return texts
-end
-
---- Aggiorna ESP per tutti i giocatori
-local function UpdateESP()
-    if not Config.ESPEnabled then
-        -- Pulisce se disattivato
+function ToggleESP()
+    Config.ESP.Enabled = not Config.ESP.Enabled
+    if not Config.ESP.Enabled then
         for _, objects in pairs(ESPObjects) do
-            for _, obj in pairs(objects) do
-                obj:Remove()
-            end
+            for _, obj in pairs(objects) do obj:Remove() end
+        end
+        table.clear(ESPObjects)
+    end
+    ShowNotification(Config.ESP.Enabled and "[+] ESP ON" or "[-] ESP OFF",
+                     Config.ESP.Enabled and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+local function UpdateESP()
+    if not Config.ESP.Enabled then
+        for _, objects in pairs(ESPObjects) do
+            for _, obj in pairs(objects) do obj:Remove() end
         end
         table.clear(ESPObjects)
         return
@@ -588,11 +603,8 @@ local function UpdateESP()
 
         local char = player.Character
         if not IsAlive(char) then
-            -- Rimuove ESP se morto
             if ESPObjects[player] then
-                for _, obj in pairs(ESPObjects[player]) do
-                    obj:Remove()
-                end
+                for _, obj in pairs(ESPObjects[player]) do obj:Remove() end
                 ESPObjects[player] = nil
             end
             continue
@@ -604,9 +616,7 @@ local function UpdateESP()
         local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
         if not onScreen then
             if ESPObjects[player] then
-                for _, obj in pairs(ESPObjects[player]) do
-                    obj.Visible = false
-                end
+                for _, obj in pairs(ESPObjects[player]) do obj.Visible = false end
             end
             continue
         end
@@ -614,33 +624,112 @@ local function UpdateESP()
         local pos2D = Vector2.new(screenPos.X, screenPos.Y)
         local distance = GetDistance(part.Position, Camera.CFrame.Position)
 
-        -- Rimuovi vecchi oggetti
         if ESPObjects[player] then
-            for _, obj in pairs(ESPObjects[player]) do
-                obj:Remove()
-            end
+            for _, obj in pairs(ESPObjects[player]) do obj:Remove() end
         end
 
-        -- Crea nuovi oggetti ESP
         local objects = {}
-        local boxSize = 60 / (distance / 100)
-        boxSize = math.clamp(boxSize, 20, 150)
+        local boxSize = math.clamp(60 / (distance / 100), 20, 150)
 
-        local box = CreateBoxESP(char, pos2D, distance)
-        if box then table.insert(objects, box) end
+        -- Box
+        if Config.ESP.Boxes then
+            local box = Drawing.new("Square")
+            box.Visible = true
+            box.Size = Vector2.new(boxSize, boxSize * 1.8)
+            box.Position = pos2D - box.Size / 2
+            box.Color = Config.ESP.Color
+            box.Thickness = Config.ESP.Thickness
+            box.Transparency = Config.ESP.Transparency
+            table.insert(objects, box)
+        end
 
-        local healthBars = CreateHealthBarESP(char, pos2D, boxSize)
-        if healthBars then
-            for _, bar in pairs(healthBars) do
+        -- Health Bar
+        if Config.ESP.Health then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                local hp = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+                local barW, barH = 6, boxSize * 1.8
+
+                local bg = Drawing.new("Square")
+                bg.Visible = true
+                bg.Size = Vector2.new(barW, barH)
+                bg.Position = pos2D - Vector2.new(boxSize / 2 + barW + 4, barH / 2)
+                bg.Color = Color3.fromRGB(50, 50, 50)
+                bg.Filled = true
+                bg.Transparency = 0.8
+                table.insert(objects, bg)
+
+                local bar = Drawing.new("Square")
+                bar.Visible = true
+                bar.Size = Vector2.new(barW - 2, (barH - 2) * hp)
+                bar.Position = bg.Position + Vector2.new(1, barH - 2 - bar.Size.Y)
+                bar.Filled = true
+                bar.Transparency = 0.6
+
+                if hp > 0.6 then
+                    bar.Color = Config.ESP.HealthColorHigh
+                elseif hp > 0.3 then
+                    bar.Color = Config.ESP.HealthColorMid
+                else
+                    bar.Color = Config.ESP.HealthColorLow
+                end
                 table.insert(objects, bar)
             end
         end
 
-        local texts = CreateTextESP(char, pos2D, distance, boxSize)
-        if texts then
-            for _, text in pairs(texts) do
-                table.insert(objects, text)
+        -- Nome
+        if Config.ESP.Names then
+            local name = Drawing.new("Text")
+            name.Visible = true
+            name.Text = player.Name
+            name.Color = Config.ESP.Color
+            name.Size = Config.ESP.FontSize
+            name.Center = true
+            name.Outline = true
+            name.Position = pos2D - Vector2.new(0, boxSize * 1.8 / 2 + 16)
+            table.insert(objects, name)
+        end
+
+        -- Distanza
+        if Config.ESP.Distance then
+            local dist = Drawing.new("Text")
+            dist.Visible = true
+            dist.Text = string.format("[%.0fm]", distance)
+            dist.Color = Color3.fromRGB(200, 200, 200)
+            dist.Size = Config.ESP.FontSize - 2
+            dist.Center = true
+            dist.Outline = true
+            dist.Position = pos2D + Vector2.new(0, boxSize * 1.8 / 2 + 4)
+            table.insert(objects, dist)
+        end
+
+        -- Arma
+        if Config.ESP.Weapon then
+            local tool = char:FindFirstChildOfClass("Tool") or
+                         LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
+            if tool then
+                local wpn = Drawing.new("Text")
+                wpn.Visible = true
+                wpn.Text = tool.Name
+                wpn.Color = Color3.fromRGB(255, 200, 50)
+                wpn.Size = Config.ESP.FontSize - 2
+                wpn.Center = true
+                wpn.Outline = true
+                wpn.Position = pos2D + Vector2.new(0, boxSize * 1.8 / 2 + 22)
+                table.insert(objects, wpn)
             end
+        end
+
+        -- Linee
+        if Config.ESP.Lines then
+            local line = Drawing.new("Line")
+            line.Visible = true
+            line.From = screenCenter
+            line.To = pos2D
+            line.Color = Config.ESP.Color
+            line.Thickness = 1
+            line.Transparency = 0.4
+            table.insert(objects, line)
         end
 
         ESPObjects[player] = objects
@@ -648,268 +737,136 @@ local function UpdateESP()
 end
 
 -- =============================================================================
--- SEZIONE 14: NO RECOIL / NO SPREAD
+-- SEZIONE 15: MOVEMENT FUNCTIONS
 -- =============================================================================
 
-function EnableNoRecoil()
-    Config.NoRecoilEnabled = true
-    ShowNotification("[+] No Recoil ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableNoRecoil()
-    Config.NoRecoilEnabled = false
-    ShowNotification("[-] No Recoil OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local function ApplyNoRecoil()
-    if not Config.NoRecoilEnabled then return end
-
-    -- Hook per annullare il rinculo
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    local tool = character:FindFirstChildOfClass("Tool")
-    if not tool then return end
-
-    -- Prova a disabilitare il recoil tramite remote se presenti
-    local recoilScript = tool:FindFirstChild("RecoilScript") or
-                         tool:FindFirstChild("GunScript") or
-                         tool:FindFirstChild("WeaponScript")
-
-    if recoilScript then
-        -- Molti giochi usano variabili di rinculo nel tool
-        local success, err = pcall(function()
-            if tool.RecoilAmount then
-                tool.RecoilAmount.Value = 0
-            end
-            if tool.CameraRecoil then
-                tool.CameraRecoil.Value = Vector3.new(0, 0, 0)
-            end
-            if tool.RecoilPattern then
-                tool.RecoilPattern:Destroy()
-            end
-        end)
+function ToggleSpeedHack()
+    Config.Movement.SpeedHack = not Config.Movement.SpeedHack
+    if not Config.Movement.SpeedHack and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 16 end
     end
+    ShowNotification(Config.Movement.SpeedHack and "[+] Speed Hack ON" or "[-] Speed Hack OFF",
+                     Config.Movement.SpeedHack and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
 end
 
-function EnableNoSpread()
-    Config.NoSpreadEnabled = true
-    ShowNotification("[+] No Spread ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableNoSpread()
-    Config.NoSpreadEnabled = false
-    ShowNotification("[-] No Spread OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local function ApplyNoSpread()
-    if not Config.NoSpreadEnabled then return end
-
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    local tool = character:FindFirstChildOfClass("Tool")
-    if not tool then return end
-
-    -- Simile al recoil, molti giochi hanno variabili spread
-    local success, err = pcall(function()
-        if tool.SpreadAmount then
-            tool.SpreadAmount.Value = 0
-        end
-        if tool.BulletSpread then
-            tool.BulletSpread.Value = 0
-        end
-        if tool.SpreadPattern then
-            tool.SpreadPattern:Destroy()
-        end
-    end)
-end
-
--- =============================================================================
--- SEZIONE 15: MOVEMENT HACKS
--- =============================================================================
-
--- Speed Hack
-function EnableSpeedHack(multiplier)
-    Config.SpeedHackEnabled = true
-    Config.SpeedMultiplier = multiplier or 2.0
-    ShowNotification("[+] Speed Hack " .. Config.SpeedMultiplier .. "x", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableSpeedHack()
-    Config.SpeedHackEnabled = false
-    if LocalPlayer.Character then
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = 16
-        end
-    end
-    ShowNotification("[-] Speed Hack OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local function ApplySpeedHack()
-    if not Config.SpeedHackEnabled then return end
-
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = 16 * Config.SpeedMultiplier
-    end
-end
-
--- Fly Hack
-function EnableFly()
-    Config.FlyEnabled = true
-    ShowNotification("[+] Fly ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableFly()
-    Config.FlyEnabled = false
-    ShowNotification("[-] Fly OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local flyConnection = nil
-
-local function ExecuteFly()
-    if not Config.FlyEnabled then return end
-
-    if flyConnection then
+function ToggleFly()
+    Config.Movement.Fly = not Config.Movement.Fly
+    if not Config.Movement.Fly and flyConnection then
         flyConnection:Disconnect()
         flyConnection = nil
     end
+    ShowNotification(Config.Movement.Fly and "[+] Fly ON" or "[-] Fly OFF",
+                     Config.Movement.Fly and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
 
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    bodyVelocity.Velocity = Vector3.new()
+function ToggleInfiniteJump()
+    Config.Movement.InfiniteJump = not Config.Movement.InfiniteJump
+    ShowNotification(Config.Movement.InfiniteJump and "[+] Infinite Jump ON" or "[-] Infinite Jump OFF",
+                     Config.Movement.InfiniteJump and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleBunnyHop()
+    Config.Movement.BunnyHop = not Config.Movement.BunnyHop
+    ShowNotification(Config.Movement.BunnyHop and "[+] Bunny Hop ON" or "[-] Bunny Hop OFF",
+                     Config.Movement.BunnyHop and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleNoclip()
+    Config.Movement.Noclip = not Config.Movement.Noclip
+    if not Config.Movement.Noclip and noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+    ShowNotification(Config.Movement.Noclip and "[+] Noclip ON" or "[-] Noclip OFF",
+                     Config.Movement.Noclip and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+local flyConnection = nil
+local noclipConnection = nil
+local lastSpacePress = 0
+
+local function ExecuteFly()
+    if not Config.Movement.Fly then
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
+        return
+    end
+
+    if flyConnection then return end
+
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
 
     flyConnection = RunService.Heartbeat:Connect(function()
-        local character = LocalPlayer.Character
-        if not character then return end
-
-        local root = character:FindFirstChild("HumanoidRootPart")
+        local char = LocalPlayer.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
         if not root then return end
 
-        bodyVelocity.Parent = root
+        bv.Parent = root
+        local dir = Vector3.new()
 
-        local moveDirection = Vector3.new()
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then dir = dir - Vector3.new(0, 1, 0) end
 
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-            moveDirection = moveDirection + Camera.CFrame.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-            moveDirection = moveDirection - Camera.CFrame.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-            moveDirection = moveDirection - Camera.CFrame.RightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-            moveDirection = moveDirection + Camera.CFrame.RightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            moveDirection = moveDirection + Vector3.new(0, 1, 0)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-            moveDirection = moveDirection - Vector3.new(0, 1, 0)
-        end
-
-        if moveDirection.Magnitude > 0 then
-            bodyVelocity.Velocity = moveDirection.Unit * Config.FlySpeed
-        else
-            bodyVelocity.Velocity = Vector3.new()
-        end
+        bv.Velocity = dir.Magnitude > 0 and dir.Unit * Config.Movement.FlySpeed or Vector3.new()
     end)
 end
 
--- Infinite Jump
-function EnableInfiniteJump()
-    Config.InfiniteJumpEnabled = true
-    ShowNotification("[+] Infinite Jump ON", Color3.fromRGB(0, 255, 100))
+local function ApplyMovement()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
 
-    LocalPlayer.CharacterAdded:Connect(function(char)
-        task.wait(1)
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid and Config.InfiniteJumpEnabled then
-            humanoid.JumpPower = 100
-        end
-    end)
-end
+    if Config.Movement.SpeedHack then
+        hum.WalkSpeed = 16 * Config.Movement.SpeedMultiplier
+    end
 
-function DisableInfiniteJump()
-    Config.InfiniteJumpEnabled = false
-    ShowNotification("[-] Infinite Jump OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local function ApplyInfiniteJump()
-    if not Config.InfiniteJumpEnabled then return end
-
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.JumpPower = 100
+    if Config.Movement.InfiniteJump then
+        hum.JumpPower = Config.Movement.JumpPower
     end
 end
 
--- Bunny Hop
-function EnableBunnyHop()
-    Config.BunnyHopEnabled = true
-    ShowNotification("[+] Bunny Hop ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableBunnyHop()
-    Config.BunnyHopEnabled = false
-    ShowNotification("[-] Bunny Hop OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local lastSpacePress = 0
-
 local function ExecuteBunnyHop()
-    if not Config.BunnyHopEnabled then return end
+    if not Config.Movement.BunnyHop then return end
 
-    local character = LocalPlayer.Character
-    if not character then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
 
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    if UserInputService:IsKeyDown(Enum.KeyCode.Space) and humanoid.FloorMaterial ~= Enum.Material.Air then
+    if UserInputService:IsKeyDown(Enum.KeyCode.Space) and hum.FloorMaterial ~= Enum.Material.Air then
         local now = tick()
         if now - lastSpacePress > 0.2 then
-            humanoid.Jump = true
+            hum.Jump = true
             lastSpacePress = now
         end
     end
 end
 
--- Noclip
-function EnableNoclip()
-    Config.NoclipEnabled = true
-    ShowNotification("[+] Noclip ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableNoclip()
-    Config.NoclipEnabled = false
-    ShowNotification("[-] Noclip OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local noclipConnection = nil
-
 local function ExecuteNoclip()
-    if not Config.NoclipEnabled then return end
-
-    if noclipConnection then
-        noclipConnection:Disconnect()
-        noclipConnection = nil
+    if not Config.Movement.Noclip then
+        if noclipConnection then
+            noclipConnection:Disconnect()
+            noclipConnection = nil
+        end
+        return
     end
 
-    noclipConnection = RunService.Stepped:Connect(function()
-        local character = LocalPlayer.Character
-        if not character then return end
+    if noclipConnection then return end
 
-        for _, part in ipairs(character:GetDescendants()) do
+    noclipConnection = RunService.Stepped:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") and part.CanCollide then
                 part.CanCollide = false
             end
@@ -918,244 +875,243 @@ local function ExecuteNoclip()
 end
 
 -- =============================================================================
--- SEZIONE 16: WALLHACK
+-- SEZIONE 16: WEAPON FUNCTIONS
 -- =============================================================================
 
-function EnableWallhack()
-    Config.WallhackEnabled = true
-    ShowNotification("[+] Wallhack ON", Color3.fromRGB(0, 255, 100))
+function ToggleNoRecoil()
+    Config.Weapon.NoRecoil = not Config.Weapon.NoRecoil
+    ShowNotification(Config.Weapon.NoRecoil and "[+] No Recoil ON" or "[-] No Recoil OFF",
+                     Config.Weapon.NoRecoil and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
 
-    -- Rende trasparenti i muri
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Transparency < 0.5 then
-            obj.LocalTransparencyModifier = 0.7
+function ToggleNoSpread()
+    Config.Weapon.NoSpread = not Config.Weapon.NoSpread
+    ShowNotification(Config.Weapon.NoSpread and "[+] No Spread ON" or "[-] No Spread OFF",
+                     Config.Weapon.NoSpread and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleInfiniteAmmo()
+    Config.Weapon.InfiniteAmmo = not Config.Weapon.InfiniteAmmo
+    ShowNotification(Config.Weapon.InfiniteAmmo and "[+] Infinite Ammo ON" or "[-] Infinite Ammo OFF",
+                     Config.Weapon.InfiniteAmmo and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleOneHitKill()
+    Config.Weapon.OneHitKill = not Config.Weapon.OneHitKill
+    ShowNotification(Config.Weapon.OneHitKill and "[+] One Hit Kill ON" or "[-] One Hit Kill OFF",
+                     Config.Weapon.OneHitKill and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleAutoLoadout()
+    Config.Weapon.AutoLoadout = not Config.Weapon.AutoLoadout
+    ShowNotification(Config.Weapon.AutoLoadout and "[+] Auto Loadout ON" or "[-] Auto Loadout OFF",
+                     Config.Weapon.AutoLoadout and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+local function ApplyWeaponMods()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool then return end
+
+    local success, err = pcall(function()
+        if Config.Weapon.NoRecoil and tool.RecoilAmount then tool.RecoilAmount.Value = 0 end
+        if Config.Weapon.NoRecoil and tool.CameraRecoil then tool.CameraRecoil.Value = Vector3.new() end
+        if Config.Weapon.NoSpread and tool.SpreadAmount then tool.SpreadAmount.Value = 0 end
+        if Config.Weapon.NoSpread and tool.BulletSpread then tool.BulletSpread.Value = 0 end
+        if Config.Weapon.InfiniteAmmo and tool.Ammo then tool.Ammo.Value = 999 end
+        if Config.Weapon.InfiniteAmmo and tool.CurrentAmmo then tool.CurrentAmmo.Value = 999 end
+        if Config.Weapon.InfiniteAmmo and tool.ReserveAmmo then tool.ReserveAmmo.Value = 9999 end
+        if Config.Weapon.OneHitKill and tool.Damage then tool.Damage.Value = 1e6 end
+        if Config.Weapon.OneHitKill and tool.BulletDamage then tool.BulletDamage.Value = 1e6 end
+    end)
+
+    -- Auto Loadout
+    if Config.Weapon.AutoLoadout then
+        local current = char:FindFirstChildOfClass("Tool")
+        if current and current.Name ~= Config.Weapon.LoadoutWeapon then
+            local target = LocalPlayer.Backpack:FindFirstChild(Config.Weapon.LoadoutWeapon)
+            if target then
+                hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then hum:EquipTool(target) end
+            end
         end
     end
 end
 
-function DisableWallhack()
-    Config.WallhackEnabled = false
-    ShowNotification("[-] Wallhack OFF", Color3.fromRGB(255, 50, 50))
+-- =============================================================================
+-- SEZIONE 17: EXPLORATION FUNCTIONS
+-- =============================================================================
 
-    -- Ripristina trasparenza
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            obj.LocalTransparencyModifier = 0
+function ToggleWallhack()
+    Config.Exploration.Wallhack = not Config.Exploration.Wallhack
+    ShowNotification(Config.Exploration.Wallhack and "[+] Wallhack ON" or "[-] Wallhack OFF",
+                     Config.Exploration.Wallhack and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleAntiAim()
+    Config.Exploration.AntiAim = not Config.Exploration.AntiAim
+    ShowNotification(Config.Exploration.AntiAim and "[+] Anti-Aim ON" or "[-] Anti-Aim OFF",
+                     Config.Exploration.AntiAim and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleAutoHeal()
+    Config.Exploration.AutoHeal = not Config.Exploration.AutoHeal
+    ShowNotification(Config.Exploration.AutoHeal and "[+] Auto Heal ON" or "[-] Auto Heal OFF",
+                     Config.Exploration.AutoHeal and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleAutoFarm()
+    Config.Exploration.AutoFarm = not Config.Exploration.AutoFarm
+    ShowNotification(Config.Exploration.AutoFarm and "[+] Auto Farm ON" or "[-] Auto Farm OFF",
+                     Config.Exploration.AutoFarm and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleChatSpammer()
+    Config.Exploration.ChatSpammer = not Config.Exploration.ChatSpammer
+    ShowNotification(Config.Exploration.ChatSpammer and "[+] Chat Spammer ON" or "[-] Chat Spammer OFF",
+                     Config.Exploration.ChatSpammer and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+-- =============================================================================
+-- SEZIONE 18: MISC FUNCTIONS
+-- =============================================================================
+
+function ToggleCustomCrosshair()
+    Config.Misc.CustomCrosshair = not Config.Misc.CustomCrosshair
+    CrosshairCircle.Visible = Config.Misc.CustomCrosshair
+    ShowNotification(Config.Misc.CustomCrosshair and "[+] Custom Crosshair ON" or "[-] Custom Crosshair OFF",
+                     Config.Misc.CustomCrosshair and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleFOVChanger()
+    Config.Misc.FOVChanger = not Config.Misc.FOVChanger
+    if Config.Misc.FOVChanger then
+        Camera.FieldOfView = Config.Misc.FOVValue
+    else
+        Camera.FieldOfView = 70
+    end
+    ShowNotification(Config.Misc.FOVChanger and "[+] FOV Changer ON" or "[-] FOV Changer OFF",
+                     Config.Misc.FOVChanger and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleThirdPerson()
+    Config.Misc.ThirdPerson = not Config.Misc.ThirdPerson
+    if not Config.Misc.ThirdPerson then
+        local char = LocalPlayer.Character
+        if char then
+            Camera.CameraSubject = char:FindFirstChildOfClass("Humanoid")
         end
     end
+    ShowNotification(Config.Misc.ThirdPerson and "[+] Third Person ON" or "[-] Third Person OFF",
+                     Config.Misc.ThirdPerson and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
 end
+
+function ToggleOrbit()
+    Config.Misc.Orbit = not Config.Misc.Orbit
+    ShowNotification(Config.Misc.Orbit and "[+] Orbit ON" or "[-] Orbit OFF",
+                     Config.Misc.Orbit and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50))
+end
+
+function ToggleVoidSpam()
+    Config.Misc.VoidSpam = not Config.Misc.VoidSpam
+    ShowNotification(Config.Misc.VoidSpam and "[+] Void Spam ON" or "[-] Void Spam OFF",
+                     Config.Misc.VoidSpam and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(255, 50, 50))
+end
+
+-- =============================================================================
+-- SEZIONE 19: WALLHACK APPLICAZIONE
+-- =============================================================================
 
 local wallhackConnection = nil
 
 local function ApplyWallhack()
-    if not Config.WallhackEnabled then return end
-
-    if wallhackConnection then
-        wallhackConnection:Disconnect()
-    end
-
-    wallhackConnection = RunService.Heartbeat:Connect(function()
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player == LocalPlayer then continue end
-            if not player.Character then continue end
-
-            for _, part in ipairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") and part.Transparency > 0.5 then
-                    part.LocalTransparencyModifier = -0.5
+    if Config.Exploration.Wallhack then
+        if wallhackConnection then return end
+        wallhackConnection = RunService.Heartbeat:Connect(function()
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    if obj.Transparency < 0.5 then
+                        obj.LocalTransparencyModifier = Config.Exploration.WallhackTransparency
+                    end
                 end
             end
+            -- Rendi visibili i player attraverso i muri
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player == LocalPlayer then continue end
+                if not player.Character then continue end
+                for _, part in ipairs(player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") and part.Transparency > 0.5 then
+                        part.LocalTransparencyModifier = -0.8
+                    end
+                end
+            end
+        end)
+    else
+        if wallhackConnection then
+            wallhackConnection:Disconnect()
+            wallhackConnection = nil
         end
-    end)
-end
-
--- =============================================================================
--- SEZIONE 17: WEAPON MODS (Infinite Ammo, Instant Reload, One Hit Kill)
--- =============================================================================
-
-function EnableInfiniteAmmo()
-    Config.InfiniteAmmoEnabled = true
-    ShowNotification("[+] Infinite Ammo ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableInfiniteAmmo()
-    Config.InfiniteAmmoEnabled = false
-    ShowNotification("[-] Infinite Ammo OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local function ApplyInfiniteAmmo()
-    if not Config.InfiniteAmmoEnabled then return end
-
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    local tool = character:FindFirstChildOfClass("Tool")
-    if not tool then return end
-
-    -- Cerca remote per ricarica o variabili munizioni
-    local success, err = pcall(function()
-        if tool.Ammo then
-            tool.Ammo.Value = 999
+        -- Ripristina
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                obj.LocalTransparencyModifier = 0
+            end
         end
-        if tool.CurrentAmmo then
-            tool.CurrentAmmo.Value = 999
-        end
-        if tool.MaxAmmo then
-            tool.MaxAmmo.Value = 999
-        end
-        if tool.ReserveAmmo then
-            tool.ReserveAmmo.Value = 9999
-        end
-    end)
-end
-
-function EnableInstantReload()
-    Config.InstantReloadEnabled = true
-    ShowNotification("[+] Instant Reload ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableInstantReload()
-    Config.InstantReloadEnabled = false
-    ShowNotification("[-] Instant Reload OFF", Color3.fromRGB(255, 50, 50))
-end
-
-function EnableOneHitKill()
-    Config.OneHitKillEnabled = true
-    ShowNotification("[+] One Hit Kill ON", Color3.fromRGB(255, 50, 50))
-end
-
-function DisableOneHitKill()
-    Config.OneHitKillEnabled = false
-    ShowNotification("[-] One Hit Kill OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local function ApplyOneHitKill()
-    if not Config.OneHitKillEnabled then return end
-
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    local tool = character:FindFirstChildOfClass("Tool")
-    if not tool then return end
-
-    -- Molti giochi hanno un valore di danno nel tool
-    local success, err = pcall(function()
-        if tool.Damage then
-            tool.Damage.Value = 1e6
-        end
-        if tool.BulletDamage then
-            tool.BulletDamage.Value = 1e6
-        end
-        if tool.WeaponDamage then
-            tool.WeaponDamage.Value = 1e6
-        end
-    end)
-end
-
--- =============================================================================
--- SEZIONE 18: ANTI-AIM
--- =============================================================================
-
-function EnableAntiAim()
-    Config.AntiAimEnabled = true
-    ShowNotification("[+] Anti-Aim ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableAntiAim()
-    Config.AntiAimEnabled = false
-    ShowNotification("[-] Anti-Aim OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local antiAimConnection = nil
-
-local function ExecuteAntiAim()
-    if not Config.AntiAimEnabled then return end
-
-    if antiAimConnection then
-        antiAimConnection:Disconnect()
-    end
-
-    antiAimConnection = RunService.Heartbeat:Connect(function()
-        local character = LocalPlayer.Character
-        if not character then return end
-
-        local root = character:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-
-        -- Muove la testa casualmente per disturbare gli aimbot nemici
-        local head = character:FindFirstChild("Head")
-        if head then
-            head.CFrame = head.CFrame * CFrame.Angles(
-                math.rad(math.random(-10, 10)),
-                math.rad(math.random(-180, 180)),
-                math.rad(math.random(-10, 10))
-            )
-        end
-
-        -- Muove il root part random
-        root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(math.random(-5, 5)), 0)
-    end)
-end
-
--- =============================================================================
--- SEZIONE 19: AUTO-BLOCK / AUTO-HEAL
--- =============================================================================
-
-function EnableAutoBlock()
-    Config.AutoBlockEnabled = true
-    ShowNotification("[+] Auto Block ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableAutoBlock()
-    Config.AutoBlockEnabled = false
-    ShowNotification("[-] Auto Block OFF", Color3.fromRGB(255, 50, 50))
-end
-
-local function ExecuteAutoBlock()
-    if not Config.AutoBlockEnabled then return end
-
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    -- Se ha uno strumento con blocco
-    local tool = character:FindFirstChildOfClass("Tool")
-    if tool and tool:FindFirstChild("Block") then
-        -- Simula pressione tasto per bloccare
-        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Q, false, game)
-        RandomDelay()
     end
 end
 
-function EnableAutoHeal()
-    Config.AutoHealEnabled = true
-    ShowNotification("[+] Auto Heal ON", Color3.fromRGB(0, 255, 100))
+-- =============================================================================
+-- SEZIONE 20: ALTRE FUNZIONI SECONDARIE
+-- =============================================================================
+
+local orbitAngle = 0
+
+local function ExecuteOrbit()
+    if not Config.Misc.Orbit then return end
+
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local target = GetClosestTarget(false)
+    if target then
+        orbitAngle = orbitAngle + Config.Misc.OrbitSpeed
+        local rad = math.rad(orbitAngle)
+        root.CFrame = CFrame.new(
+            target.Position.X + math.cos(rad) * Config.Misc.OrbitRadius,
+            target.Position.Y + 2,
+            target.Position.Z + math.sin(rad) * Config.Misc.OrbitRadius
+        )
+    end
 end
 
-function DisableAutoHeal()
-    Config.AutoHealEnabled = false
-    ShowNotification("[-] Auto Heal OFF", Color3.fromRGB(255, 50, 50))
+local function ExecuteVoidSpam()
+    if not Config.Misc.VoidSpam then return end
+
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.CFrame = root.CFrame * CFrame.new(0, -500, 0)
+    end
 end
 
 local function ExecuteAutoHeal()
-    if not Config.AutoHealEnabled then return end
+    if not Config.Exploration.AutoHeal then return end
 
-    local character = LocalPlayer.Character
-    if not character then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
 
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    if humanoid.Health < humanoid.MaxHealth * 0.5 then
-        -- Cerca oggetti curativi nell'inventario
+    if hum.Health < hum.MaxHealth * Config.Exploration.AutoHealThreshold then
         for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-            if item:IsA("Tool") and item.Name:lower():find("health") or
-               item.Name:lower():find("med") or
-               item.Name:lower():find("bandage") or
-               item.Name:lower():find("first") then
-                LocalPlayer.Character.Humanoid:EquipTool(item)
-                task.wait(0.5)
+            local name = item.Name:lower()
+            if name:find("health") or name:find("med") or name:find("bandage") or name:find("first") then
+                hum:EquipTool(item)
+                task.wait(0.3)
                 mouse1click()
                 RandomDelay()
                 break
@@ -1164,31 +1120,19 @@ local function ExecuteAutoHeal()
     end
 end
 
--- =============================================================================
--- SEZIONE 20: AUTO-FARM
--- =============================================================================
-
-function EnableAutoFarm()
-    Config.AutoFarmEnabled = true
-    ShowNotification("[+] Auto Farm ON", Color3.fromRGB(0, 255, 100))
-end
-
-function DisableAutoFarm()
-    Config.AutoFarmEnabled = false
-    ShowNotification("[-] Auto Farm OFF", Color3.fromRGB(255, 50, 50))
-end
-
 local function ExecuteAutoFarm()
-    if not Config.AutoFarmEnabled then return end
+    if not Config.Exploration.AutoFarm then return end
 
-    -- Trova risorse vicine (monete, drops, ecc.)
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("Part") and obj:FindFirstChild("TouchInterest") then
-            local distance = GetDistance(obj.Position, LocalPlayer.Character.HumanoidRootPart.Position)
-            if distance < 50 then
-                -- Muovi verso la risorsa
-                local direction = (obj.Position - LocalPlayer.Character.HumanoidRootPart.Position).Unit
-                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(obj.Position)
+            local dist = GetDistance(obj.Position, root.Position)
+            if dist < Config.Exploration.FarmRange then
+                root.CFrame = CFrame.new(obj.Position)
                 task.wait(0.1)
                 break
             end
@@ -1196,412 +1140,321 @@ local function ExecuteAutoFarm()
     end
 end
 
+local function ExecuteAntiAim()
+    if not Config.Exploration.AntiAim then return end
+
+    local char = LocalPlayer.Character
+    if not char then return end
+    local head = char:FindFirstChild("Head")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if head then
+        head.CFrame = head.CFrame * CFrame.Angles(
+            math.rad(math.random(-15, 15)),
+            math.rad(math.random(-180, 180)),
+            math.rad(math.random(-15, 15))
+        )
+    end
+    if root then
+        root.CFrame = root.CFrame * CFrame.Angles(0, math.rad(math.random(-5, 5)), 0)
+    end
+end
+
 -- =============================================================================
--- SEZIONE 21: FOV CHANGER / THIRD PERSON / CUSTOM CROSSHAIR
+-- SEZIONE 21: COSTRUZIONE DEL MENU GUI
 -- =============================================================================
 
-function EnableFOVChanger(fov)
-    Config.FOVChangerEnabled = true
-    local newFOV = fov or 120
-    Camera.FieldOfView = newFOV
-    ShowNotification("[+] FOV cambiato a " .. newFOV, Color3.fromRGB(0, 255, 100))
-end
+local menuBuildVersion = 0
 
-function DisableFOVChanger()
-    Config.FOVChangerEnabled = false
-    Camera.FieldOfView = 70
-    ShowNotification("[-] FOV ripristinato", Color3.fromRGB(255, 50, 50))
-end
+function RebuildMenu()
+    menuBuildVersion = menuBuildVersion + 1
+    local version = menuBuildVersion
 
-function EnableThirdPerson(distance)
-    Config.ThirdPersonEnabled = true
-    local camDist = distance or 10
+    -- Pulisce vecchi oggetti
+    for _, obj in pairs(MenuObjects) do
+        if obj.Remove then obj:Remove() end
+    end
+    table.clear(MenuObjects)
+    table.clear(TabButtons)
 
-    -- Crea un part per la terza persona
-    local cameraPart = Instance.new("Part")
-    cameraPart.Name = "ThirdPersonPart"
-    cameraPart.Anchored = true
-    cameraPart.CanCollide = false
-    cameraPart.Transparency = 1
-    cameraPart.Size = Vector3.new(1, 1, 1)
-    cameraPart.Parent = Workspace
+    if not MenuOpen then return end
 
-    RunService.Heartbeat:Connect(function()
-        if not Config.ThirdPersonEnabled then
-            cameraPart:Destroy()
-            return
-        end
+    local style = Config.MenuStyle
+    local w, h = style.Width, style.Height
+    local x, y = style.X, style.Y
+    local fs = style.FontSize
+    local padding = 10
+    local tabHeight = 35
 
-        local character = LocalPlayer.Character
-        if not character then return end
+    -- === BACKGROUND ===
+    local bg = Drawing.new("Square")
+    bg.Visible = true
+    bg.Size = Vector2.new(w, h)
+    bg.Position = Vector2.new(x, y)
+    bg.Color = style.BackgroundColor
+    bg.Filled = true
+    bg.Transparency = style.Transparency
+    table.insert(MenuObjects, bg)
 
-        local root = character:FindFirstChild("HumanoidRootPart")
-        if not root then return end
+    -- === BORDERS ===
+    local border = Drawing.new("Square")
+    border.Visible = true
+    border.Size = Vector2.new(w, h)
+    border.Position = Vector2.new(x, y)
+    border.Color = style.BorderColor
+    border.Thickness = 2
+    border.Transparency = 0
+    table.insert(MenuObjects, border)
 
-        cameraPart.Position = root.Position - Camera.CFrame.LookVector * camDist + Vector3.new(0, 3, 0)
-        Camera.CameraSubject = cameraPart
-    end)
+    -- === TITLE BAR ===
+    local titleBg = Drawing.new("Square")
+    titleBg.Visible = true
+    titleBg.Size = Vector2.new(w, tabHeight)
+    titleBg.Position = Vector2.new(x, y)
+    titleBg.Color = style.AccentColor
+    titleBg.Filled = true
+    titleBg.Transparency = 0.2
+    table.insert(MenuObjects, titleBg)
 
-    ShowNotification("[+] Third Person ON", Color3.fromRGB(0, 255, 100))
-end
+    local title = Drawing.new("Text")
+    title.Visible = true
+    title.Text = "Universal Hack Suite v4.0"
+    title.Color = style.TitleColor
+    title.Size = style.TitleSize
+    title.Font = 2
+    title.Center = true
+    title.Position = Vector2.new(x + w / 2, y + tabHeight / 2 - title.Size / 2)
+    table.insert(MenuObjects, title)
 
-function DisableThirdPerson()
-    Config.ThirdPersonEnabled = false
-    Camera.CameraSubject = LocalPlayer.Character and
-                           LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    ShowNotification("[-] Third Person OFF", Color3.fromRGB(255, 50, 50))
-end
+    -- === TABS ===
+    local tabs = {"Aimbot", "ESP", "Movement", "Weapon", "Exploration", "Misc", "Settings"}
+    local tabW = (w - padding * 2) / #tabs
+    local tabY = y + tabHeight
 
-function EnableCustomCrosshair()
-    Config.CustomCrosshairEnabled = true
-    DrawingObjects.Crosshair.Visible = true
-    ShowNotification("[+] Custom Crosshair ON", Color3.fromRGB(0, 255, 100))
-end
+    for i, tabName in ipairs(tabs) do
+        local tabX = x + padding + (i - 1) * tabW
 
-function DisableCustomCrosshair()
-    Config.CustomCrosshairEnabled = false
-    DrawingObjects.Crosshair.Visible = false
-    ShowNotification("[-] Custom Crosshair OFF", Color3.fromRGB(255, 50, 50))
-end
+        local tabBg = Drawing.new("Square")
+        tabBg.Visible = true
+        tabBg.Size = Vector2.new(tabW - 4, 25)
+        tabBg.Position = Vector2.new(tabX + 2, tabY + 5)
+        tabBg.Color = (tabName == CurrentTab) and style.AccentColor or style.BorderColor
+        tabBg.Filled = true
+        tabBg.Transparency = (tabName == CurrentTab) and 0.3 or 0.7
+        table.insert(MenuObjects, tabBg)
 
-local function UpdateCrosshair()
-    if not Config.CustomCrosshairEnabled then
-        DrawingObjects.Crosshair.Visible = false
-        return
+        local tabText = Drawing.new("Text")
+        tabText.Visible = true
+        tabText.Text = tabName
+        tabText.Color = style.TextColor
+        tabText.Size = fs
+        tabText.Center = true
+        tabText.Position = Vector2.new(tabX + tabW / 2, tabY + 17 - fs / 2)
+        table.insert(MenuObjects, tabText)
+
+        table.insert(TabButtons, {
+            Name = tabName,
+            X = tabX,
+            Y = tabY,
+            Width = tabW,
+            Height = 25,
+        })
     end
 
-    DrawingObjects.Crosshair.Position = Vector2.new(Mouse.X, Mouse.Y)
-    DrawingObjects.Crosshair.Visible = true
-end
+    -- === CONTENUTO TAB ===
+    local contentY = tabY + 40
+    local contentX = x + padding
+    local contentW = w - padding * 2
+    local itemY = contentY
 
--- =============================================================================
--- SEZIONE 22: CHAT SPAMMER
--- =============================================================================
+    local function CreateToggle(text, value, toggleFunc, yPos)
+        local bg = Drawing.new("Square")
+        bg.Visible = true
+        bg.Size = Vector2.new(contentW, 28)
+        bg.Position = Vector2.new(contentX, yPos)
+        bg.Color = value and style.ToggleOnColor or style.ToggleOffColor
+        bg.Filled = true
+        bg.Transparency = 0.8
+        table.insert(MenuObjects, bg)
 
-function EnableChatSpammer(message, interval)
-    Config.ChatSpammerEnabled = true
-    local msg = message or "EZ"
-    local delay = interval or 5
+        local txt = Drawing.new("Text")
+        txt.Visible = true
+        txt.Text = text .. ": " .. (value and "ON" or "OFF")
+        txt.Color = style.TextColor
+        txt.Size = fs
+        txt.Position = Vector2.new(contentX + 10, yPos + 6)
+        table.insert(MenuObjects, txt)
 
-    ShowNotification("[+] Chat Spammer ON", Color3.fromRGB(0, 255, 100))
+        return {Type = "toggle", Y = yPos, Height = 28, Func = toggleFunc, Bg = bg, Text = txt, Ref = value}
+    end
 
-    task.spawn(function()
-        while Config.ChatSpammerEnabled do
-            task.wait(delay)
-            if Config.ChatSpammerEnabled then
-                local args = {
-                    [1] = "All",
-                    [2] = msg
-                }
-                -- Molti giochi usano un remote per la chat
-                local chatRemote = ReplicatedStorage:FindFirstChild("ChatRemote") or
-                                   ReplicatedStorage:FindFirstChild("SayMessageRequest") or
-                                   ReplicatedStorage:FindFirstChild("MainEvent")
+    local function CreateSlider(text, value, min, max, step, suffix, onChange, yPos)
+        local bg = Drawing.new("Square")
+        bg.Visible = true
+        bg.Size = Vector2.new(contentW, 28)
+        bg.Position = Vector2.new(contentX, yPos)
+        bg.Color = Color3.fromRGB(40, 40, 50)
+        bg.Filled = true
+        bg.Transparency = 0.8
+        table.insert(MenuObjects, bg)
 
-                if chatRemote then
-                    chatRemote:FireServer(unpack(args))
-                else
-                    -- Alternativa: invia tramite VirtualInputManager
-                    VirtualInputManager:SendKeyboardEvent(true, Enum.KeyCode.Slash, false, game)
-                    task.wait(0.1)
-                    VirtualInputManager:SendKeyboardEvent(true, Enum.KeyCode.Slash, false, game)
-                    task.wait(0.1)
-                    for _, char in ipairs(string.split(msg, "")) do
-                        VirtualInputManager:SendKeyboardEvent(true, Enum.KeyCode[char:upper()], false, game)
-                        task.wait(0.05)
-                    end
-                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-                end
-            end
+        local fillW = ((value - min) / (max - min)) * (contentW - 20)
+        local fill = Drawing.new("Square")
+        fill.Visible = true
+        fill.Size = Vector2.new(fillW, 24)
+        fill.Position = Vector2.new(contentX + 4, yPos + 2)
+        fill.Color = style.SliderColor
+        fill.Filled = true
+        fill.Transparency = 0.6
+        table.insert(MenuObjects, fill)
+
+        local txt = Drawing.new("Text")
+        txt.Visible = true
+        txt.Text = text .. ": " .. string.format("%.1f", value) .. (suffix or "")
+        txt.Color = style.TextColor
+        txt.Size = fs
+        txt.Position = Vector2.new(contentX + 12, yPos + 6)
+        table.insert(MenuObjects, txt)
+
+        return {Type = "slider", Y = yPos, Height = 28, Value = value, Min = min, Max = max, Step = step, OnChange = onChange, Bg = fill, Text = txt}
+    end
+
+    if CurrentTab == "Aimbot" then
+        itemY = CreateToggle("Aimbot", Config.Aimbot.Enabled, ToggleAimbot, itemY).Y + 32
+        itemY = CreateToggle("Silent Aim", Config.Aimbot.SilentAim, ToggleSilentAim, itemY).Y + 32
+        itemY = CreateToggle("Ragebot", Config.Aimbot.Ragebot, ToggleRagebot, itemY).Y + 32
+        itemY = CreateToggle("Triggerbot", Config.Aimbot.Triggerbot, ToggleTriggerbot, itemY).Y + 32
+        itemY = CreateSlider("Smoothness", Config.Aimbot.Smoothness, 0, 1, 0.05, "", function(v) Config.Aimbot.Smoothness = v end, itemY).Y + 32
+        itemY = CreateSlider("FOV Radius", Config.Aimbot.FOVRadius, 20, 500, 5, "px", function(v) Config.Aimbot.FOVRadius = v; FOVCircle.Radius = v end, itemY).Y + 32
+        itemY = CreateSlider("Prediction", Config.Aimbot.PredictionMultiplier, 0, 1, 0.05, "", function(v) Config.Aimbot.PredictionMultiplier = v end, itemY).Y + 32
+        itemY = CreateSlider("Delay Min (ms)", Config.Aimbot.RandomDelayMin, 10, 500, 5, "ms", function(v) Config.Aimbot.RandomDelayMin = v end, itemY).Y + 32
+        itemY = CreateSlider("Delay Max (ms)", Config.Aimbot.RandomDelayMax, 10, 500, 5, "ms", function(v) Config.Aimbot.RandomDelayMax = v end, itemY).Y + 32
+
+    elseif CurrentTab == "ESP" then
+        itemY = CreateToggle("ESP", Config.ESP.Enabled, ToggleESP, itemY).Y + 32
+        itemY = CreateToggle("Boxes", Config.ESP.Boxes, function() Config.ESP.Boxes = not Config.ESP.Boxes end, itemY).Y + 32
+        itemY = CreateToggle("Health", Config.ESP.Health, function() Config.ESP.Health = not Config.ESP.Health end, itemY).Y + 32
+        itemY = CreateToggle("Names", Config.ESP.Names, function() Config.ESP.Names = not Config.ESP.Names end, itemY).Y + 32
+        itemY = CreateToggle("Distance", Config.ESP.Distance, function() Config.ESP.Distance = not Config.ESP.Distance end, itemY).Y + 32
+        itemY = CreateToggle("Weapon", Config.ESP.Weapon, function() Config.ESP.Weapon = not Config.ESP.Weapon end, itemY).Y + 32
+        itemY = CreateToggle("Lines", Config.ESP.Lines, function() Config.ESP.Lines = not Config.ESP.Lines end, itemY).Y + 32
+        itemY = CreateSlider("Font Size", Config.ESP.FontSize, 10, 24, 1, "", function(v) Config.ESP.FontSize = v end, itemY).Y + 32
+
+    elseif CurrentTab == "Movement" then
+        itemY = CreateToggle("Speed Hack", Config.Movement.SpeedHack, ToggleSpeedHack, itemY).Y + 32
+        itemY = CreateSlider("Speed Multiplier", Config.Movement.SpeedMultiplier, 1, 10, 0.5, "x", function(v) Config.Movement.SpeedMultiplier = v end, itemY).Y + 32
+        itemY = CreateToggle("Fly", Config.Movement.Fly, ToggleFly, itemY).Y + 32
+        itemY = CreateSlider("Fly Speed", Config.Movement.FlySpeed, 10, 200, 5, "", function(v) Config.Movement.FlySpeed = v end, itemY).Y + 32
+        itemY = CreateToggle("Infinite Jump", Config.Movement.InfiniteJump, ToggleInfiniteJump, itemY).Y + 32
+        itemY = CreateToggle("Bunny Hop", Config.Movement.BunnyHop, ToggleBunnyHop, itemY).Y + 32
+        itemY = CreateToggle("Noclip", Config.Movement.Noclip, ToggleNoclip, itemY).Y + 32
+
+    elseif CurrentTab == "Weapon" then
+        itemY = CreateToggle("No Recoil", Config.Weapon.NoRecoil, ToggleNoRecoil, itemY).Y + 32
+        itemY = CreateToggle("No Spread", Config.Weapon.NoSpread, ToggleNoSpread, itemY).Y + 32
+        itemY = CreateToggle("Infinite Ammo", Config.Weapon.InfiniteAmmo, ToggleInfiniteAmmo, itemY).Y + 32
+        itemY = CreateToggle("One Hit Kill", Config.Weapon.OneHitKill, ToggleOneHitKill, itemY).Y + 32
+        itemY = CreateToggle("Auto Loadout", Config.Weapon.AutoLoadout, ToggleAutoLoadout, itemY).Y + 32
+
+    elseif CurrentTab == "Exploration" then
+        itemY = CreateToggle("Wallhack", Config.Exploration.Wallhack, ToggleWallhack, itemY).Y + 32
+        itemY = CreateToggle("Anti-Aim", Config.Exploration.AntiAim, ToggleAntiAim, itemY).Y + 32
+        itemY = CreateToggle("Auto Heal", Config.Exploration.AutoHeal, ToggleAutoHeal, itemY).Y + 32
+        itemY = CreateToggle("Auto Farm", Config.Exploration.AutoFarm, ToggleAutoFarm, itemY).Y + 32
+        itemY = CreateToggle("Chat Spammer", Config.Exploration.ChatSpammer, ToggleChatSpammer, itemY).Y + 32
+
+    elseif CurrentTab == "Misc" then
+        itemY = CreateToggle("Custom Crosshair", Config.Misc.CustomCrosshair, ToggleCustomCrosshair, itemY).Y + 32
+        itemY = CreateToggle("FOV Changer", Config.Misc.FOVChanger, ToggleFOVChanger, itemY).Y + 32
+        itemY = CreateToggle("Third Person", Config.Misc.ThirdPerson, ToggleThirdPerson, itemY).Y + 32
+        itemY = CreateToggle("Orbit", Config.Misc.Orbit, ToggleOrbit, itemY).Y + 32
+        itemY = CreateToggle("Void Spam", Config.Misc.VoidSpam, ToggleVoidSpam, itemY).Y + 32
+
+    elseif CurrentTab == "Settings" then
+        -- Temi
+        local themeLabel = Drawing.new("Text")
+        themeLabel.Visible = true
+        themeLabel.Text = "Tema: " .. Config.MenuStyle.Theme
+        themeLabel.Color = style.TextColor
+        themeLabel.Size = fs + 2
+        themeLabel.Position = Vector2.new(contentX + 10, itemY + 5)
+        table.insert(MenuObjects, themeLabel)
+        itemY = itemY + 25
+
+        local themeNames = {"Dark", "Light", "Blue", "Red", "Green", "Purple", "Orange"}
+        local btnW = (contentW - 20) / 3
+        for i, tn in ipairs(themeNames) do
+            local col = (i - 1) % 3
+            local row = math.floor((i - 1) / 3)
+            local bx = contentX + 10 + col * (btnW + 5)
+            local by = itemY + row * 30
+
+            local btn = Drawing.new("Square")
+            btn.Visible = true
+            btn.Size = Vector2.new(btnW, 25)
+            btn.Position = Vector2.new(bx, by)
+            btn.Color = tn == Config.MenuStyle.Theme and style.AccentColor or style.BorderColor
+            btn.Filled = true
+            btn.Transparency = 0.5
+            table.insert(MenuObjects, btn)
+
+            local btxt = Drawing.new("Text")
+            btxt.Visible = true
+            btxt.Text = tn
+            btxt.Color = style.TextColor
+            btxt.Size = fs - 2
+            btxt.Center = true
+            btxt.Position = Vector2.new(bx + btnW / 2, by + 6)
+            table.insert(MenuObjects, btxt)
         end
-    end)
-end
+        itemY = itemY + math.ceil(#themeNames / 3) * 30 + 10
 
-function DisableChatSpammer()
-    Config.ChatSpammerEnabled = false
-    ShowNotification("[-] Chat Spammer OFF", Color3.fromRGB(255, 50, 50))
+        -- Trasparenza
+        itemY = CreateSlider("Trasparenza", Config.MenuStyle.Transparency, 0.2, 1, 0.05, "", function(v) Config.MenuStyle.Transparency = v; RebuildMenu() end, itemY).Y + 32
+    end
 end
 
 -- =============================================================================
--- SEZIONE 23: AUTO-LOADOUT
+-- SEZIONE 22: TOGGLE MENU (CTRL + DESTRO)
 -- =============================================================================
 
-function EnableAutoLoadout(weaponName)
-    Config.AutoLoadoutEnabled = true
-    local targetWeapon = weaponName or "Sniper" -- Personalizzabile
-
-    ShowNotification("[+] Auto Loadout: " .. targetWeapon, Color3.fromRGB(0, 255, 100))
-
-    task.spawn(function()
-        while Config.AutoLoadoutEnabled do
-            task.wait(1)
-            local character = LocalPlayer.Character
-            if not character then continue end
-
-            local currentTool = character:FindFirstChildOfClass("Tool")
-            if currentTool and currentTool.Name ~= targetWeapon then
-                -- Cerca l'arma nello zaino e selezionala
-                local tool = LocalPlayer.Backpack:FindFirstChild(targetWeapon)
-                if tool then
-                    LocalPlayer.Character.Humanoid:EquipTool(tool)
-                end
-            end
+function ToggleMenu()
+    MenuOpen = not MenuOpen
+    if MenuOpen then
+        RebuildMenu()
+    else
+        for _, obj in pairs(MenuObjects) do
+            if obj.Remove then obj:Remove() end
         end
-    end)
-end
-
-function DisableAutoLoadout()
-    Config.AutoLoadoutEnabled = false
-    ShowNotification("[-] Auto Loadout OFF", Color3.fromRGB(255, 50, 50))
+        table.clear(MenuObjects)
+        table.clear(TabButtons)
+    end
 end
 
 -- =============================================================================
--- SEZIONE 24: VOID SPAM
+-- SEZIONE 23: INPUT HANDLING COMPLETO
 -- =============================================================================
 
-function EnableVoidSpam()
-    Config.VoidSpamEnabled = true
-    ShowNotification("[+] Void Spam ON", Color3.fromRGB(255, 50, 50))
-
-    task.spawn(function()
-        while Config.VoidSpamEnabled do
-            local character = LocalPlayer.Character
-            if not character then return end
-
-            local root = character:FindFirstChild("HumanoidRootPart")
-            if root then
-                root.CFrame = root.CFrame * CFrame.new(0, -500, 0)
-            end
-            task.wait(0.1)
-        end
-    end)
-end
-
-function DisableVoidSpam()
-    Config.VoidSpamEnabled = false
-    ShowNotification("[-] Void Spam OFF", Color3.fromRGB(255, 50, 50))
-end
-
--- =============================================================================
--- SEZIONE 25: ORBIT
--- =============================================================================
-
-function EnableOrbit()
-    Config.OrbitEnabled = true
-    ShowNotification("[+] Orbit ON", Color3.fromRGB(0, 255, 100))
-
-    local orbitAngle = 0
-
-    task.spawn(function()
-        while Config.OrbitEnabled do
-            local character = LocalPlayer.Character
-            if not character then return end
-
-            local root = character:FindFirstChild("HumanoidRootPart")
-            if not root then return end
-
-            -- Trova il nemico più vicino
-            local target = GetClosestTarget(false)
-            if target then
-                orbitAngle = orbitAngle + 2
-
-                local radius = 15
-                local x = target.Position.X + math.cos(math.rad(orbitAngle)) * radius
-                local z = target.Position.Z + math.sin(math.rad(orbitAngle)) * radius
-
-                root.CFrame = CFrame.new(
-                    x,
-                    target.Position.Y + 2,
-                    z
-                )
-            end
-
-            task.wait(0.03)
-        end
-    end)
-end
-
-function DisableOrbit()
-    Config.OrbitEnabled = false
-    ShowNotification("[-] Orbit OFF", Color3.fromRGB(255, 50, 50))
-end
-
--- =============================================================================
--- SEZIONE 26: HOTKEY GESTIONE
--- =============================================================================
+-- Toggle menu con Ctrl+Destro
+local menuTogglePressed = false
+local menuToggleCtrl = false
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
-    -- Toggle principale (cambia modalità aimbot)
-    if input.KeyCode == Config.ToggleKey then
-        if not Config.AimbotEnabled and not Config.SilentAimEnabled and not Config.RagebotEnabled then
-            EnableAimbot()
-        elseif Config.AimbotEnabled then
-            DisableAimbot()
-            EnableSilentAim()
-        elseif Config.SilentAimEnabled then
-            DisableSilentAim()
-            EnableRagebot()
-        elseif Config.RagebotEnabled then
-            DisableRagebot()
-        end
+    -- Gestione toggle menu: Ctrl + Destro
+    if input.KeyCode == Config.Hotkeys.MenuToggle.Modifier then
+        menuToggleCtrl = true
     end
 
-    -- Menu key (potrebbe aprire un GUI futuro)
-    if input.KeyCode == Config.MenuKey then
-        ShowNotification("[*] Menu hotkey premuto", Color3.fromRGB(200, 200, 200))
+    if input.UserInputType == Config.Hotkeys.MenuToggle.Key and menuToggleCtrl then
+        ToggleMenu()
+        return
     end
-end)
 
--- =============================================================================
--- SEZIONE 27: LOOP PRINCIPALE
--- =============================================================================
+    -- Se il menu è aperto, gestisci click sulle tabs
+    if MenuOpen and input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mx, my = Mouse.X, Mouse.Y
 
--- Loop per aggiornamenti visivi e FOV
-RunService.Heartbeat:Connect(function()
-    -- Aggiorna FOV Circle
-    DrawingObjects.FOVCircle.Position = GetScreenCenter()
-
-    -- Aggiorna Custom Crosshair
-    UpdateCrosshair()
-
-    -- Aggiorna ESP
-    UpdateESP()
-
-    -- Applica modifiche alle armi
-    ApplyNoRecoil()
-    ApplyNoSpread()
-    ApplyInfiniteAmmo()
-    ApplyOneHitKill()
-    ApplySpeedHack()
-    ApplyInfiniteJump()
-    ApplyWallhack()
-end)
-
--- Loop per azioni con delay (evita lag)
-task.spawn(function()
-    while task.wait(0.05) do
-        -- Aimbot
-        if Config.AimbotEnabled then
-            ExecuteAimbot()
-        end
-
-        -- Movement
-        ExecuteFly()
-        ExecuteBunnyHop()
-        ExecuteNoclip()
-
-        -- Triggerbot (più reattivo)
-        if Config.TriggerbotEnabled then
-            ExecuteTriggerbot()
-        end
-
-        -- Altre funzioni
-        ExecuteAntiAim()
-        ExecuteAutoBlock()
-        ExecuteAutoHeal()
-        ExecuteAutoFarm()
-    end
-end)
-
--- Loop per funzioni con delay maggiore
-task.spawn(function()
-    while task.wait(0.2) do
-        if Config.SilentAimEnabled then
-            ExecuteSilentAim()
-        end
-        if Config.RagebotEnabled then
-            ExecuteRagebot()
-        end
-    end
-end)
-
--- =============================================================================
--- SEZIONE 28: ANTI-BAN E ANTI-DETECTION
--- =============================================================================
-
--- Variabili dummy per alterare firma dello script
-local _antiBan1 = HttpService:GenerateGUID(false)
-local _antiBan2 = string.char(math.random(65, 90), math.random(65, 90), math.random(65, 90))
-local _antiBan3 = tick() * math.random()
-local _antiBan4 = RandomGen and RandomGen:NextNumber() or math.random()
-
--- Hook per rilevare reset del personaggio
-LocalPlayer.CharacterAdded:Connect(function(char)
-    Character = char
-    Humanoid = char:FindFirstChildOfClass("Humanoid")
-    RootPart = char:FindFirstChild("HumanoidRootPart")
-
-    task.wait(2)
-
-    -- Riapplica stati
-    if Config.SpeedHackEnabled then ApplySpeedHack() end
-    if Config.InfiniteJumpEnabled then ApplyInfiniteJump() end
-    if Config.NoclipEnabled then ExecuteNoclip() end
-    if Config.WallhackEnabled then ApplyWallhack() end
-    if Config.FlyEnabled then ExecuteFly() end
-
-    ShowNotification("[*] Personaggio resettato - Stati riapplicati", Color3.fromRGB(100, 200, 255))
-end)
-
--- =============================================================================
--- SEZIONE 29: FUNZIONE DEBUG
--- =============================================================================
-
-function DebugStatus()
-    print("==========================================")
-    print("[DEBUG] Universal Hack Suite - Stato:")
-    print("")
-    print("--- AIMBOT ---")
-    print("Aimbot: " .. tostring(Config.AimbotEnabled))
-    print("Silent Aim: " .. tostring(Config.SilentAimEnabled))
-    print("Ragebot: " .. tostring(Config.RagebotEnabled))
-    print("Triggerbot: " .. tostring(Config.TriggerbotEnabled))
-    print("FOV Radius: " .. Config.FOVRadius)
-    print("Smoothness: " .. Config.AimLockSmoothness)
-    print("")
-    print("--- ESP ---")
-    print("ESP: " .. tostring(Config.ESPEnabled))
-    print("")
-    print("--- MOVEMENT ---")
-    print("Speed Hack: " .. tostring(Config.SpeedHackEnabled) .. " (" .. Config.SpeedMultiplier .. "x)")
-    print("Fly: " .. tostring(Config.FlyEnabled))
-    print("Infinite Jump: " .. tostring(Config.InfiniteJumpEnabled))
-    print("Bunny Hop: " .. tostring(Config.BunnyHopEnabled))
-    print("Noclip: " .. tostring(Config.NoclipEnabled))
-    print("")
-    print("--- WEAPON ---")
-    print("No Recoil: " .. tostring(Config.NoRecoilEnabled))
-    print("No Spread: " .. tostring(Config.NoSpreadEnabled))
-    print("Infinite Ammo: " .. tostring(Config.InfiniteAmmoEnabled))
-    print("One Hit Kill: " .. tostring(Config.OneHitKillEnabled))
-    print("")
-    print("--- OTHER ---")
-    print("Wallhack: " .. tostring(Config.WallhackEnabled))
-    print("Anti-Aim: " .. tostring(Config.AntiAimEnabled))
-    print("Auto Heal: " .. tostring(Config.AutoHealEnabled))
-    print("Auto Farm: " .. tostring(Config.AutoFarmEnabled))
-    print("Chat Spammer: " .. tostring(Config.ChatSpammerEnabled))
-    print("Third Person: " .. tostring(Config.ThirdPersonEnabled))
-    print("Orbit: " .. tostring(Config.OrbitEnabled))
-    print("Void Spam: " .. tostring(Config.VoidSpamEnabled))
-    print("")
-    print("--- HOTKEYS ---")
-    print("Toggle: " .. tostring(Config.ToggleKey))
-    print("Menu: " .. tostring(Config.MenuKey))
-    print("==========================================")
-end
-
--- =============================================================================
--- AVVIO
--- =============================================================================
-
-print("==========================================")
-print("[UniversalHackSuite] Caricato con successo!")
-print("[UniversalHackSuite] Premi F5 per ciclare modalità aimbot")
-print("[UniversalHackSuite] Premi INS per aprire menu (futuro)")
-print("[UniversalHackSuite] Usa DebugStatus() per info dettagliate")
-print("==========================================")
-
-ShowNotification("[*] Universal Hack Suite caricato", Color3.fromRGB(100, 200, 255), 3)
+        -- Controlla tabs
+        for _, tab in ipairs(TabButtons) do
+            if
